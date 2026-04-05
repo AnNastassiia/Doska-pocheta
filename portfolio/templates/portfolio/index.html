@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% block content %}
+<header class="main-header">
+    <div class="container header-inner">
+        <a class="brand" href="/">Академия-ТОП</a>
+        <nav class="main-nav">
+            <a href="#students" class="nav-link">Студентам</a>
+            <a href="#employers" class="nav-link">Работодателям</a>
+            {% if user.is_authenticated %}
+                <a href="/dashboard/" class="nav-link">Кабинет</a>
+                <a href="/logout/" class="nav-link">Выход</a>
+            {% else %}
+                <a href="/login/" class="nav-link">Вход</a>
+            {% endif %}
+        </nav>
+        <a href="#" class="btn-outline">Стать партнером</a>
+    </div>
+</header>
+
+<section class="hero-section">
+    <div class="container hero-content">
+        <h1>Цифровая Доска почета.</h1>
+        <p>Место, где достижения студентов подтверждены администрацией колледжа.</p>
+        <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input type="text" placeholder="Найти разработчика, дизайнера или аналитика..." name="q">
+        </div>
+    </div>
+</section>
+
+<section id="students" class="top-students-section">
+    <div class="container">
+        <h2>Топ-студенты месяца</h2>
+        <div class="chips">
+            <button class="chip active">Все</button>
+            <button class="chip">Программирование</button>
+            <button class="chip">Дизайн</button>
+            <button class="chip">Сети и Безопасность</button>
+        </div>
+        <div class="skill-filter">
+            <span>Теги: </span>
+            <a href="?skill=Python" class="skill-tag">Python</a>
+            <a href="?skill=Figma" class="skill-tag">Figma</a>
+            <a href="?skill=SQL" class="skill-tag">SQL</a>
+            <a href="?skill=1C" class="skill-tag">1C</a>
+        </div>
+        <div class="top-students-grid">
+            {% for student in students %}
+            <a href="/profile/{{ student.id }}/" class="student-card-link">
+                <div class="student-card">
+                    {% if student.photo %}
+                        <img src="{{ student.photo.url }}" alt="Фото {{ student.full_name }}">
+                    {% else %}
+                        <img src="/static/sample-student.jpg" alt="Фото студента">
+                    {% endif %}
+                    <div class="badge-row">
+                        <span class="name">{{ student.full_name }}</span>
+                        <span class="verified">✔</span>
+                    </div>
+                    <p class="specialty">{{ student.course }}</p>
+                    <div class="tech-tags">
+                        <span class="tech">React</span>
+                        <span class="tech">Node.js</span>
+                        <span class="tech">MongoDB</span>
+                    </div>
+                    <span class="status status-online">Ищу стажировку</span>
+                </div>
+            </a>
+            {% empty %}
+            <p>Нет студентов по выбранным фильтрам.</p>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<footer class="site-footer">
+    <div class="container">
+        <p>© 2026 Академия-ТОП. Все права защищены.</p>
+        <a href="#">Политика обработки данных</a>
+    </div>
+</footer>
+{% endblock %}

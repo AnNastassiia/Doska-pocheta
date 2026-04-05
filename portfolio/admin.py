@@ -2,14 +2,42 @@ from django.contrib import admin
 
 # Register your models here.
 
-from .models import Student, Achievement
+from .models import Student, Achievement, Employer
+
 
 @admin.register(Student)
 class StudentAdmin(admin.ModelAdmin):
-    list_display = ['full_name', 'course', 'data_processing_consent', 'created_at']
-    list_filter = ['course', 'data_processing_consent']
-    search_fields = ['full_name', 'course']
+    list_display = ['full_name', 'course', 'student_card_number', 'is_approved', 'created_at']
+    list_filter = ['course', 'is_approved', 'data_processing_consent']
+    search_fields = ['full_name', 'course', 'student_card_number']
     readonly_fields = ['created_at', 'updated_at']
+    actions = ['approve_students', 'reject_students']
+
+    def approve_students(self, request, queryset):
+        queryset.update(is_approved=True)
+    approve_students.short_description = 'Одобрить выбранных студентов на доске почета'
+
+    def reject_students(self, request, queryset):
+        queryset.update(is_approved=False)
+    reject_students.short_description = 'Отклонить выбранных студентов'
+
+
+@admin.register(Employer)
+class EmployerAdmin(admin.ModelAdmin):
+    list_display = ['company_name', 'sector', 'contact_person', 'is_approved', 'created_at']
+    list_filter = ['sector', 'is_approved']
+    search_fields = ['company_name', 'contact_person']
+    readonly_fields = ['created_at', 'updated_at']
+    actions = ['approve_employers', 'reject_employers']
+
+    def approve_employers(self, request, queryset):
+        queryset.update(is_approved=True)
+    approve_employers.short_description = 'Одобрить работодателей'
+
+    def reject_employers(self, request, queryset):
+        queryset.update(is_approved=False)
+    reject_employers.short_description = 'Отклонить работодателей'
+
 
 @admin.register(Achievement)
 class AchievementAdmin(admin.ModelAdmin):

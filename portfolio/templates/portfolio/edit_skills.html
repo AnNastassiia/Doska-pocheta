@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="auth-form">
+    <h2>Мои навыки</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Сохранить навыки</button>
+    </form>
+    <p style="margin-top:20px;">Не нашли нужный навык? <a href="#">Запросить добавление</a></p>
+</div>
+{% endblock %}

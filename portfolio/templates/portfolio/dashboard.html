@@ -1,0 +1,356 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="dashboard-wrapper">
+    <!-- Основная область -->
+    <main class="dashboard-main">
+        <div class="dashboard-content">
+            <h1>Мой профиль</h1>
+
+            {% if employer %}
+                <p>Вы зарегистрированы как работодатель: <strong>{{ employer.company_name }}</strong></p>
+                <p>Статус: <strong>{{ profile_status }}</strong></p>
+                <p>После одобрения администрацией вы получите доступ к запросам контактов студентов.</p>
+            {% elif student %}
+                <p>Статус профиля: <strong>{{ profile_status }}</strong></p>
+            {% endif %}
+
+            {% if employer %}
+                <section class="profile-section">
+                    <h2>Информация работодателя</h2>
+                    <ul>
+                        <li>Компания: {{ employer.company_name }}</li>
+                        <li>Сфера: {{ employer.get_sector_display }}</li>
+                        <li>Контактное лицо: {{ employer.contact_person }}</li>
+                        <li>Цель: {{ employer.registration_purpose }}</li>
+                    </ul>
+                    <a href="/edit-employer-profile/" class="btn-primary">Редактировать профиль</a>
+                </section>
+            {% endif %}
+
+            {% if student %}
+            <!-- О себе -->
+            <section class="profile-section">
+                <h2>О себе</h2>
+                <form method="post" action="/dashboard/update-bio/">
+                    {% csrf_token %}
+                    <textarea name="bio" placeholder="Расскажите о себе, ваших интересах и целях..." rows="5" class="textarea-field">Студентка 3 курса. Специализируюсь на создании адаптивных интерфейсов.</textarea>
+                    <button type="submit" class="btn-primary">Сохранить</button>
+                </form>
+            </section>
+
+            <!-- Навыки -->
+            <section class="profile-section">
+                <h2>Навыки</h2>
+                <div class="skills-input">
+                    <input type="text" id="skill-input" placeholder="Введите навык и нажмите Enter...">
+                </div>
+                <div class="skills-list">
+                    {% for skill in student.skills.all %}
+                        <span class="skill-badge">
+                            {{ skill.name }}
+                            <button type="button" class="remove-skill" data-skill-id="{{ skill.id }}">✕</button>
+                        </span>
+                    {% endfor %}
+                </div>
+                <p style="color:#888; font-size:12px;">Не видите нужный навык? <a href="#">Запросить добавление</a></p>
+            </section>
+
+            <!-- Управление портфолио -->
+            <section class="profile-section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2>Мое портфолио</h2>
+                    <a href="/add-project/" class="btn-add-project">+ Добавить проект</a>
+                </div>
+
+                {% if student.achievements.all %}
+                    <div class="projects-list">
+                        {% for project in student.achievements.all %}
+                            <div class="project-item">
+                                <div class="project-status">
+                                    {% if project.is_approved %}
+                                        <span class="status-badge approved">✓ Одобрено</span>
+                                    {% elif project.is_approved == False and project.admin_comment %}
+                                        <span class="status-badge rejected">✕ Требуются правки</span>
+                                    {% else %}
+                                        <span class="status-badge pending">⏳ На проверке</span>
+                                    {% endif %}
+                                </div>
+                                <div class="project-details">
+                                    <h3>{{ project.title }}</h3>
+                                    <p>{{ project.description|truncatewords:15 }}</p>
+                                    <small>{{ project.get_achievement_type_display }} • {{ project.date_achieved }}</small>
+                                </div>
+                                <div class="project-actions">
+                                    {% if not project.is_approved %}
+                                        <a href="/edit-project/{{ project.id }}/" class="action-btn">Редактировать</a>
+                                    {% endif %}
+                                    {% if project.admin_comment %}
+                                        <button class="action-btn warning" data-comment="{{ project.admin_comment }}">📝 Комментарий</button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p style="text-align: center; color: #999;">Вы еще не добавили проекты. <a href="/add-project/">Добавить первый проект</a></p>
+                {% endif %}
+            </section>
+
+            <!-- Настройки приватности (Quick Access) -->
+            <section class="profile-section">
+                <h2>Быстрые настройки</h2>
+                <form method="post" action="/dashboard/update-privacy/">
+                    {% csrf_token %}
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="show_profile" {% if not student.is_private %}checked{% endif %}>
+                        <span>Показывать мой профиль в поиске работодателей</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="hide_email" {% if student.hide_contacts %}checked{% endif %}>
+                        <span>Скрыть мой email (видно только через запрос)</span>
+                    </label>
+                    <button type="submit" class="btn-primary">Сохранить</button>
+                </form>
+                <hr>
+                <a href="/change-password/" class="action-btn">🔐 Сменить пароль</a>
+            </section>
+            {% endif %}
+        </div>
+    </main>
+</div>
+
+<script>
+    // Добавление навыков
+    document.getElementById('skill-input')?.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            const skillName = this.value.trim();
+            if (skillName) {
+                // Отправить AJAX запрос на добавление навыка
+                fetch('/add-skill/', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ skill: skillName })
+                }).then(r => r.json()).then(data => {
+                    if (data.success) location.reload();
+                });
+            }
+            this.value = '';
+        }
+    });
+</script>
+
+<style>
+.dashboard-wrapper {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+    padding: 20px;
+    background: #f8fafc;
+    min-height: calc(100vh - 60px);
+}
+.dashboard-sidebar {
+    display: none;
+}
+.sidebar-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.menu-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-radius: 8px;
+    text-decoration: none;
+    color: #0a2540;
+    font-weight: 500;
+    transition: background 0.2s;
+}
+.menu-item:hover,
+.menu-item.active {
+    background: #f0f5ff;
+    color: #0a63c6;
+}
+.badge {
+    background: #ff6b6b;
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+}
+.dashboard-main {
+    background: #fff;
+    border-radius: 8px;
+    padding: 32px;
+}
+.profile-section {
+    border-bottom: 1px solid #e5e7eb;
+    padding-bottom: 24px;
+    margin-bottom: 24px;
+}
+.profile-section h2 {
+    margin-top: 0;
+}
+.textarea-field {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 14px;
+    resize: vertical;
+}
+.skills-input input {
+    width: 100%;
+    max-width: 400px;
+    padding: 10px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    margin-bottom: 12px;
+}
+.skills-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+.skill-badge {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+.remove-skill {
+    background: none;
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 0;
+}
+.btn-add-project {
+    background: #ffb300;
+    color: #0a2540;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 6px;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+}
+.projects-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+.project-item {
+    display: grid;
+    grid-template-columns: 120px 1fr 150px;
+    gap: 16px;
+    padding: 16px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    align-items: center;
+}
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+}
+.status-badge.approved {
+    background: #d4f3dd;
+    color: #1f7d3d;
+}
+.status-badge.pending {
+    background: #fef3c7;
+    color: #a16207;
+}
+.status-badge.rejected {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+.project-details h3 {
+    margin: 0 0 4px 0;
+}
+.project-details p {
+    margin: 4px 0;
+    color: #666;
+    font-size: 14px;
+}
+.project-details small {
+    color: #999;
+}
+.project-actions {
+    display: flex;
+    gap: 8px;
+}
+.action-btn {
+    padding: 6px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background: #fff;
+    color: #0a2540;
+    cursor: pointer;
+    font-size: 12px;
+    text-decoration: none;
+}
+.action-btn.warning {
+    border-color: #fca5a5;
+    color: #b91c1c;
+}
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+    cursor: pointer;
+}
+.checkbox-label input {
+    cursor: pointer;
+}
+.btn-primary {
+    background: #0a2540;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 12px;
+}
+.btn-primary:hover {
+    background: #143d6b;
+}
+hr {
+    border: none;
+    border-top: 1px solid #e5e7eb;
+    margin: 16px 0;
+}
+
+@media (max-width: 800px) {
+    .dashboard-wrapper {
+        grid-template-columns: 1fr;
+    }
+    .dashboard-sidebar {
+        position: static;
+    }
+    .project-item {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+{% endblock %}
+

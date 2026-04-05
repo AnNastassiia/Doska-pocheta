@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="auth-form">
+    <h2>Добавить проект или достижение</h2>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Сохранить</button>
+    </form>
+    <p style="margin-top:20px; color:#888;">После сохранения проект будет отправлен на модерацию.</p>
+</div>
+{% endblock %}

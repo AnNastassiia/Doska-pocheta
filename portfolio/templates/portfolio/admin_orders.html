@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="admin-panel">
+    <h1>Админка — Реестр приказов</h1>
+    <div class="admin-nav"><a href="{% url 'admin_dashboard' %}">← Назад в дашборд</a></div>
+
+    <form method="post" enctype="multipart/form-data" class="order-form">
+        {% csrf_token %}
+        <h3>Зачисление на Доску почета</h3>
+        <label>Выберите студента</label>
+        <select name="student" required>
+            <option value="">-- выберите --</option>
+            {% for student in students %}
+                <option value="{{ student.id }}">{{ student.full_name }} / {{ student.course }}</option>
+            {% endfor %}
+        </select>
+        <label>Загрузить PDF приказ</label>
+        <input type="file" name="order_pdf" accept="application/pdf" required>
+        <button type="submit" class="btn btn-primary">Присвоить статус</button>
+    </form>
+
+    <h3>История приказов</h3>
+    <table class="table">
+        <thead><tr><th>Дата</th><th>Студент</th><th>Файл</th><th>Поставил статус</th></tr></thead>
+        <tbody>
+            {% for order in orders %}
+                <tr>
+                    <td>{{ order.created_at }}</td>
+                    <td>{{ order.student.full_name }}</td>
+                    <td><a href="{{ order.file.url }}" target="_blank">PDF</a></td>
+                    <td>{{ order.assigned_by }}</td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="4">Нет приказов</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

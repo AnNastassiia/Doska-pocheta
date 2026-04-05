@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="profile-cover"></div>
+
+<div class="profile-header">
+    <div class="container">
+        <div class="profile-top">
+            {% if student.photo %}
+                <img src="{{ student.photo.url }}" alt="{{ student.full_name }}" class="profile-photo">
+            {% else %}
+                <img src="/static/sample-student.jpg" alt="{{ student.full_name }}" class="profile-photo">
+            {% endif %}
+            <div class="profile-info">
+                <div class="name-badge">
+                    <h1>{{ student.full_name }}</h1>
+                    <span class="verified-badge">✔ Достижения подтверждены</span>
+                </div>
+                <p class="specialty">{{ student.course }}</p>
+                <p class="location">📍 Москва</p>
+                <span class="status-badge">Открыта к предложениям (Стажировка)</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="profile-content">
+    <div class="container">
+        <div class="profile-grid">
+            <!-- Левая колонка -->
+            <div class="profile-main">
+                <!-- О себе -->
+                <section class="profile-section about-section">
+                    <h2>О себе</h2>
+                    <p>Студентка 3 курса. Специализируюсь на создании адаптивных интерфейсов. Участник хакатона DigitalBreakthrough 2024. Люблю работать в команде и постоянно развиваться.</p>
+                </section>
+
+                <!-- Навыки -->
+                <section class="profile-section skills-section">
+                    <h2>Навыки</h2>
+                    <div class="skills-cloud">
+                        {% for skill in skills %}
+                            <span class="skill-tag large">{{ skill.name }}</span>
+                        {% empty %}
+                            <p>Навыки не добавлены</p>
+                        {% endfor %}
+                    </div>
+                </section>
+
+                <!-- Портфолио -->
+                <section class="profile-section portfolio-section">
+                    <h2>Портфолио проектов</h2>
+                    <div class="projects-grid">
+                        {% for achievement in achievements %}
+                            <div class="project-card">
+                                <div class="project-image">
+                                    {% if achievement.document %}
+                                        <img src="{{ achievement.document.url }}" alt="{{ achievement.title }}">
+                                    {% else %}
+                                        <div class="placeholder">📁</div>
+                                    {% endif %}
+                                </div>
+                                <div class="project-info">
+                                    <h3>{{ achievement.title }}</h3>
+                                    <p>{{ achievement.description|truncatewords:20 }}</p>
+                                    <div class="project-tags">
+                                        <span class="tag">{{ achievement.get_achievement_type_display }}</span>
+                                    </div>
+                                    <div class="project-links">
+                                        <a href="#" target="_blank" class="link-btn">GitHub →</a>
+                                        <a href="#" class="link-btn">Демо →</a>
+                                    </div>
+                                </div>
+                            </div>
+                        {% empty %}
+                            <p>Проекты не добавлены</p>
+                        {% endfor %}
+                    </div>
+                </section>
+
+                <!-- Достижения -->
+                <section class="profile-section achievements-section">
+                    <h2>Достижения и Сертификаты</h2>
+                    <div class="achievements-gallery">
+                        <div class="cert-item">
+                            <img src="/static/sample-cert.jpg" alt="Сертификат">
+                            <p>Cisco Certified Associate</p>
+                        </div>
+                        <div class="cert-item">
+                            <img src="/static/sample-cert.jpg" alt="Сертификат">
+                            <p>Python Institute</p>
+                        </div>
+                        <div class="cert-item">
+                            <img src="/static/sample-cert.jpg" alt="Сертификат">
+                            <p>1C:Профессионал</p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Правая колонка (Навигация) -->
+            <div class="profile-sidebar">
+                <div class="contact-block">
+                    {% if can_see_contacts %}
+                        <!-- Показываем контакты студента -->
+                        <div style="background: #f0f8ff; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                            <h3>Контактные данные</h3>
+                            <p><strong>Email:</strong> {{ student.contact_email }}</p>
+                            <p><strong>Телефон:</strong> +7 (999) 123-45-67</p>
+                            <p><strong>Соцсети:</strong> <a href="{{ student.social_link }}" target="_blank">{{ student.social_link }}</a></p>
+                        </div>
+                    {% elif is_own_profile %}
+                        <!-- Это профиль самого студента -->
+                        <p style="color: #666;">Это ваш профиль. Работодатели видят ваши контакты при запросе.</p>
+                    {% elif user.is_authenticated %}
+                        <!-- Пользователь аутентифицирован, но не работодатель или профиль не одобрен -->
+                        {% if user.employer.is_approved %}
+                            <p style="color: #d97706;">Запросите контакты этого студента</p>
+                            <a href="{% url 'request_contact' student.id %}" class="btn-primary" style="display: block; text-align: center; text-decoration: none; margin-top: 10px;">Запросить контактные данные</a>
+                        {% else %}
+                            <p style="color: #dc2626;">Ваш профиль ожидает одобрения администратором. После одобрения вы сможете видеть контакты студентов.</p>
+                        {% endif %}
+                    {% else %}
+                        <!-- Не аутентифицирован -->
+                        <a href="{% url 'signup' %}?type=employer&redirect_to=/profile/{{ student.id }}/" class="btn-primary" style="display: block; text-align: center; padding: 12px; background: #0a2540; color: white; text-decoration: none; border-radius: 6px; margin-bottom: 10px;">Запросить контактные данные</a>
+                        <p class="contact-hint">Зарегистрируйтесь как работодатель, чтобы запросить контакты.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,213 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="auth-form">
+    <h2>Регистрация</h2>
+    
+    <!-- Вкладки для выбора типа -->
+    <div class="tabs-container">
+        <button class="tab-button active" data-tab="student">
+            Студент
+        </button>
+        <button class="tab-button" data-tab="employer">
+            Работодатель
+        </button>
+    </div>
+
+    <form method="post" action="{% url 'signup' %}" novalidate>
+        {% csrf_token %}
+        {{ user_form.username }}
+        {% if user_form.errors or student_form.errors or employer_form.errors %}
+            <div class="form-errors">
+                {{ user_form.non_field_errors }}
+                {{ user_form.errors }}
+                {{ student_form.errors }}
+                {{ employer_form.errors }}
+            </div>
+        {% endif %}
+        
+        <!-- Скрытый input для типа пользователя -->
+        <input type="hidden" id="user_type_input" name="user_type" value="student">
+        
+        <div class="mb-3">{{ user_form.email.label_tag }}{{ user_form.email }}</div>
+        <div class="mb-3">{{ user_form.password1.label_tag }}{{ user_form.password1 }}</div>
+        <div class="mb-3">{{ user_form.password2.label_tag }}{{ user_form.password2 }}</div>
+
+        <div id="student-fields" style="display:block;">
+            <h4>Данные студента</h4>
+            {{ student_form.as_p }}
+        </div>
+        <div id="employer-fields" style="display:none;">
+            <h4>Данные работодателя</h4>
+            {{ employer_form.as_p }}
+        </div>
+        <button type="submit">Зарегистрироваться</button>
+    </form>
+</div>
+
+<style>
+.tabs-container {
+    display: flex;
+    gap: 0px;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #d1d5db;
+}
+
+.tabs-container .tab-button {
+    padding: 12px 20px;
+    border: 1px solid #d1d5db;
+    border-right: none;
+    background-color: #e5e7eb !important;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 500;
+    color: #374151;
+    border-bottom: none;
+    transition: background-color 0.3s ease;
+    outline: none;
+}
+
+.tabs-container .tab-button:last-child {
+    border-right: 1px solid #d1d5db;
+}
+
+.tabs-container .tab-button:hover {
+    background-color: #f3f4f6 !important;
+}
+
+.tabs-container .tab-button.active {
+    background-color: #4b5563 !important;
+    color: #ffffff !important;
+    border-color: #4b5563 !important;
+}
+
+.tabs-container .tab-button:not(.active) {
+    background-color: #f3f4f6 !important;
+}
+
+.auth-form button[type="submit"] {
+    background: #0a2540;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    padding: 9px 0;
+    font-weight: bold;
+    font-size: 1em;
+    margin-top: 10px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.auth-form button[type="submit"]:hover {
+    background: #143d6b;
+}
+
+.form-errors {
+    background-color: #fee2e2;
+    border: 2px solid #ef4444;
+    border-radius: 6px;
+    padding: 12px 14px;
+    margin-bottom: 16px;
+    font-size: 13px;
+    color: #7f1d1d;
+}
+
+.form-errors ul {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.form-errors ul li {
+    margin: 4px 0;
+}
+
+.form-errors p {
+    margin: 4px 0;
+}
+
+.auth-form input,
+.auth-form select,
+.auth-form textarea {
+    background-color: #ffffff;
+    color: #111827;
+}
+
+input:invalid:not(:focus),
+select:invalid:not(:focus),
+textarea:invalid:not(:focus) {
+    border-color: #ef4444;
+    background-color: #ffffff;
+    color: #111827;
+}
+</style>
+
+<script>
+function switchTab(tabName) {
+    // Обновляем скрытый input
+    document.getElementById('user_type_input').value = tabName;
+    
+    // Сохраняем выбранный тип в localStorage
+    localStorage.setItem('selected_user_type', tabName);
+    
+    // Показываем/скрываем блоки
+    const studentFields = document.getElementById('student-fields');
+    const employerFields = document.getElementById('employer-fields');
+    
+    studentFields.style.display = tabName === 'student' ? 'block' : 'none';
+    employerFields.style.display = tabName === 'employer' ? 'block' : 'none';
+    
+    // Обновляем активную вкладку
+    const buttons = document.querySelectorAll('.tab-button');
+    buttons.forEach(btn => {
+        if (btn.dataset.tab === tabName) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+    
+    // Управляем атрибутом required и disabled для валидации
+    const studentInputs = studentFields.querySelectorAll('input, select, textarea');
+    const employerInputs = employerFields.querySelectorAll('input, select, textarea');
+    
+    if (tabName === 'student') {
+        studentInputs.forEach(input => {
+            input.removeAttribute('disabled');
+            input.setAttribute('required', 'required');
+        });
+        employerInputs.forEach(input => {
+            input.setAttribute('disabled', 'disabled');
+            input.removeAttribute('required');
+        });
+    } else {
+        studentInputs.forEach(input => {
+            input.setAttribute('disabled', 'disabled');
+            input.removeAttribute('required');
+        });
+        employerInputs.forEach(input => {
+            input.removeAttribute('disabled');
+            input.setAttribute('required', 'required');
+        });
+    }
+}
+
+window.addEventListener('DOMContentLoaded', function() {
+    // Получаем вкладки и добавляем обработчики
+    const tabButtons = document.querySelectorAll('.tab-button');
+    tabButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            switchTab(this.dataset.tab);
+        });
+    });
+    
+    // Восстанавливаем выбранную вкладку
+    let savedType = localStorage.getItem('selected_user_type');
+    const initialType = '{{ initial_type }}';
+    
+    if (!savedType) {
+        savedType = initialType || 'student';
+    }
+    
+    switchTab(savedType);
+});
+</script>
+{% endblock %}

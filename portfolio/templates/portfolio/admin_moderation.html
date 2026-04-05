@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="admin-panel">
+    <h1>Админка — Модерация / Заявки</h1>
+    <div class="admin-nav"><a href="{% url 'admin_dashboard' %}">← Назад в дашборд</a></div>
+    <div class="filter-buttons">
+        <a href="?filter=all" class="btn">Все</a>
+        <a href="?filter=projects" class="btn">Проекты</a>
+        <a href="?filter=certificate" class="btn">Сертификаты</a>
+        <a href="?filter=profile" class="btn">Изменения в профиле</a>
+    </div>
+    <div class="requests-list">
+        {% if items %}
+            {% for item in items %}
+                <div class="request-card">
+                    {% if item.type == 'achievement' %}
+                        <strong>Студент:</strong> {{ item.obj.student.full_name }}<br>
+                        <strong>Тип:</strong> Добавлен новый проект "{{ item.obj.title }}"<br>
+                        <strong>Контент:</strong> <a href="#" target="_blank">GitHub</a> | <a href="#">Скриншот</a><br>
+                        {% if item.obj.admin_comment %}
+                            <strong>Причина отказа:</strong> {{ item.obj.admin_comment }}<br>
+                        {% endif %}
+                    {% else %}
+                        <strong>Студент:</strong> {{ item.obj.full_name }}<br>
+                        <strong>Тип:</strong> Профиль ожидает подтверждения (изменения).<br>
+                        {% if item.obj.rejection_reason %}
+                            <strong>Причина отказа:</strong> {{ item.obj.rejection_reason }}<br>
+                        {% endif %}
+                    {% endif %}
+                    <div class="actions">
+                        {% if item.type == 'achievement' %}
+                            <a href="{% url 'approve_item' 'achievement' item.obj.id %}" class="btn btn-success">Одобрить</a>
+                            <form method="post" action="{% url 'reject_item' 'achievement' item.obj.id %}" class="reject-form" style="display:inline-block;">
+                        {% else %}
+                            <a href="{% url 'approve_item' 'student' item.obj.id %}" class="btn btn-success">Одобрить</a>
+                            <form method="post" action="{% url 'reject_item' 'student' item.obj.id %}" class="reject-form" style="display:inline-block;">
+                        {% endif %}
+                            {% csrf_token %}
+                            <input type="text" name="reason" placeholder="Причина отказа" required>
+                            <button type="submit" class="btn btn-danger">Отклонить</button>
+                        </form>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p>Заявок не найдено.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="admin-panel">
+    <h1>Админка — Управление пользователями</h1>
+    <div class="admin-nav"><a href="{% url 'admin_dashboard' %}">← Назад в дашборд</a></div>
+    <table class="table">
+        <thead><tr><th>Имя</th><th>Группа</th><th>Статус</th><th>Дата регистрации</th><th>Действие</th></tr></thead>
+        <tbody>
+            {% for student in users %}
+                <tr>
+                    <td>{{ student.full_name }}</td>
+                    <td>{{ student.course }}</td>
+                    <td>{% if student.user.is_active %}Активен{% else %}Заблокирован{% endif %}</td>
+                    <td>{{ student.created_at }}</td>
+                    <td>
+                        {% if student.user.is_active %}
+                            <a href="{% url 'admin_deactivate_user' student.id %}" class="btn btn-danger">Деактивировать профиль</a>
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="5">Нет пользователей</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

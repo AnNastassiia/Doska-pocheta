@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Доска почёта Академии-ТОП</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="icon" type="image/png" href="/static/logo.png">
+</head>
+<body>
+    <nav style="background: #0a2540; color: #fff; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center;">
+        <a href="/" style="color: #fff; text-decoration: none; font-weight: bold; font-size: 18px;">Академия-ТОП</a>
+        <div style="display: flex; gap: 15px;">
+            {% if user.is_authenticated %}
+                <span>{{ user.username }}</span>
+                {% if user.is_staff %}
+                    <a href="/admin/" style="color: #fff; text-decoration: none;">Кабинет</a>
+                {% else %}
+                    <a href="/dashboard/" style="color: #fff; text-decoration: none;">Кабинет</a>
+                {% endif %}
+                <a href="/logout/" style="color: #fff; text-decoration: none;">Выход</a>
+            {% else %}
+                <a href="/signup/" style="color: #fff; text-decoration: none;">Регистрация</a>
+                <a href="/login/" style="color: #fff; text-decoration: none;">Вход</a>
+            {% endif %}
+        </div>
+    </nav>
+    {% block content %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="admin-panel">
+    <h1>Админка — Дашборд</h1>
+    <div class="metrics">
+        <div class="metric-card"><h3>Всего студентов</h3><strong>{{ students_total }}</strong></div>
+        <div class="metric-card"><h3>Активных профилей</h3><strong>{{ students_active }}</strong></div>
+        <div class="metric-card"><h3>Заявок на проверку</h3><strong class="text-danger">{{ requests_pending }}</strong></div>
+        <div class="metric-card"><h3>Запросов контактов за неделю</h3><strong>{{ requests_contact }}</strong></div>
+    </div>
+
+    <div class="admin-actions">
+        <a class="btn btn-primary" href="{% url 'admin_moderation' %}">Модерация / Заявки</a>
+        <a class="btn btn-secondary" href="{% url 'admin_orders' %}">Реестр приказов</a>
+        <a class="btn btn-secondary" href="{% url 'admin_users' %}">Управление пользователями</a>
+    </div>
+</div>
+{% endblock %}

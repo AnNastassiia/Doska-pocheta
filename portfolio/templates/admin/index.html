@@ -1,0 +1,13 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<div class="module">
+    <h1>Администрирование</h1>
+    <p>Для просмотра заявок и модерации перейдите на кастомную админ-панель.</p>
+    <div class="dashboard-buttons">
+        <p><a class="button" href="{% url 'admin_dashboard' %}">Перейти в админ-панель</a></p>
+        <p><a class="button" href="{% url 'admin_moderation' %}">Модерация заявок</a></p>
+        <p><a class="button" href="{% url 'admin_orders' %}">Реестр приказов</a></p>
+    </div>
+</div>
+{% endblock %}
