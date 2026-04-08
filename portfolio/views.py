@@ -35,7 +35,7 @@ class ExtendedUserCreationForm(UserCreationForm):
 
 	class Meta(UserCreationForm.Meta):
 		model = User
-		fields = ('username', 'email', 'password1', 'password2', 'user_type')
+		fields = ('username', 'email', 'password1', 'password2')
 
 	def clean_email(self):
 		email = self.cleaned_data.get('email')
@@ -60,6 +60,14 @@ class CustomAuthenticationForm(AuthenticationForm):
 		'invalid_login': 'Пожалуйста, введите правильные электронную почту и пароль.',
 		'inactive': 'Этот аккаунт не активен.',
 	}
+
+	def clean_username(self):
+		# Берем значение как email
+		email = self.cleaned_data.get('username')
+		if email:
+			# Преобразуем его в username (для Django это одно и то же в нашей системе)
+			self.cleaned_data['username'] = email.lower().strip()
+		return self.cleaned_data['username']
 
 
 class StudentRegistrationForm(forms.ModelForm):
@@ -222,27 +230,35 @@ def signup(request):
 	
 	if request.method == 'POST':
 		user_form = ExtendedUserCreationForm(request.POST)
-		student_form = StudentRegistrationForm(request.POST, prefix='student')
-		employer_form = EmployerRegistrationForm(request.POST, prefix='employer')
+		user_type = request.POST.get('user_type', 'student')
+		
+		# Создаем только нужную форму в зависимости от типа
+		if user_type == 'student':
+			student_form = StudentRegistrationForm(request.POST, prefix='student')
+			employer_form = None
+		else:
+			student_form = None
+			employer_form = EmployerRegistrationForm(request.POST, prefix='employer')
 
 		if user_form.is_valid():
-			user_type = user_form.cleaned_data['user_type']
 			if user_type == 'student' and student_form.is_valid():
 				user = user_form.save(commit=False)
-				user.username = user_form.cleaned_data['email']
-				user.email = user_form.cleaned_data['email']
+				user.username = user_form.cleaned_data['email'].lower().strip()
+				user.email = user_form.cleaned_data['email'].lower().strip()
 				user.save()
 				student = student_form.save(commit=False)
 				student.user = user
+				student.full_name = student_form.cleaned_data.get('full_name', user.email)
+				student.course = student_form.cleaned_data.get('course', 'Не указано')
 				student.is_approved = False
 				student.save()
 				login(request, user)
 				return redirect('dashboard')
 
-			if user_type == 'employer' and employer_form.is_valid():
+			elif user_type == 'employer' and employer_form.is_valid():
 				user = user_form.save(commit=False)
-				user.username = user_form.cleaned_data['email']
-				user.email = user_form.cleaned_data['email']
+				user.username = user_form.cleaned_data['email'].lower().strip()
+				user.email = user_form.cleaned_data['email'].lower().strip()
 				user.save()
 				employer = employer_form.save(commit=False)
 				employer.user = user
