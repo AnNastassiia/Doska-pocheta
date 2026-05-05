@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="dashboard-wrapper">
+    <main class="dashboard-main">
+        <div class="dashboard-content">
+            <h1>Работодатели на проверке</h1>
+            <p style="color:#6b7280;">Проверьте реальность компании и решите, давать ли доступ к контактам студентов.</p>
+
+            {% for employer in employers %}
+                <section class="profile-section">
+                    <h2 style="margin-bottom:8px;">{{ employer.company_name }}</h2>
+                    <p><strong>Контактное лицо:</strong> {{ employer.contact_person }}</p>
+                    <p><strong>Email:</strong> {{ employer.user.email }}</p>
+                    <p><strong>Сфера:</strong> {{ employer.get_sector_display }}</p>
+                    <p><strong>Сайт:</strong> {{ employer.website|default:"Не указан" }}</p>
+                    <p><strong>Цель регистрации:</strong> {{ employer.registration_purpose|default:"Не указана" }}</p>
+
+                    <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:16px;">
+                        <form method="post" action="{% url 'manager_approve_employer' employer.id %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn-primary" style="width:auto;">Одобрить доступ</button>
+                        </form>
+                        <form method="post" action="{% url 'manager_block_employer' employer.id %}">
+                            {% csrf_token %}
+                            <button type="submit" class="action-btn warning">Отклонить / оставить без доступа</button>
+                        </form>
+                    </div>
+                </section>
+            {% empty %}
+                <p>Сейчас нет работодателей, ожидающих проверки.</p>
+            {% endfor %}
+        </div>
+    </main>
+</div>
+
+<style>
+.dashboard-wrapper {
+    padding: 20px;
+    background: #f8fafc;
+    min-height: calc(100vh - 60px);
+}
+.dashboard-main {
+    max-width: 1200px;
+    margin: 0 auto;
+    background:#fff;
+    border-radius:12px;
+    padding:32px;
+}
+.profile-section {
+    border:1px solid #e5e7eb;
+    border-radius:12px;
+    padding:24px;
+    margin-bottom:24px;
+}
+.action-btn.warning {
+    background:#fff;
+    color:#b91c1c;
+    border:1px solid #fca5a5;
+    border-radius:6px;
+    padding:10px 16px;
+    cursor:pointer;
+}
+</style>
+{% endblock %}

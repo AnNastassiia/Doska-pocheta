@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% block content %}
+<div style="padding:20px; background:#f8fafc; min-height:calc(100vh - 60px);">
+  <div style="max-width:1100px; margin:0 auto;">
+    <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-end; flex-wrap:wrap;">
+      <div>
+        <h1 style="margin:0;">Вакансии и стажировки</h1>
+        <p style="color:#6b7280;">Открытые предложения партнеров.</p>
+      </div>
+      {% if user.is_authenticated and user.employer %}
+        <a href="{% url 'employer_vacancies' %}" style="background:#0a2540; color:#fff; text-decoration:none; border-radius:8px; padding:10px 14px;">Мои вакансии</a>
+      {% endif %}
+    </div>
+
+    <form method="get" style="display:grid; grid-template-columns:2fr 1fr 1fr 1fr auto; gap:8px; margin-top:12px;">
+      <input type="text" name="q" value="{{ q }}" placeholder="Поиск по названию/описанию" style="padding:10px; border:1px solid #d1d5db; border-radius:8px;">
+      <input type="text" name="region" value="{{ region }}" placeholder="Регион" style="padding:10px; border:1px solid #d1d5db; border-radius:8px;">
+      <input type="text" name="stack" value="{{ stack }}" placeholder="Стек" style="padding:10px; border:1px solid #d1d5db; border-radius:8px;">
+      <select name="type" style="padding:10px; border:1px solid #d1d5db; border-radius:8px;">
+        <option value="">Любой формат</option>
+        {% for value, label in emp_types %}
+          <option value="{{ value }}" {% if emp_type == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" style="background:#0a2540; color:#fff; border:none; border-radius:8px; padding:10px 12px;">Фильтр</button>
+    </form>
+
+    <div style="margin-top:16px; display:grid; gap:12px;">
+      {% for vacancy in vacancies %}
+        <div style="background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:16px;">
+          <h3 style="margin:0 0 6px 0;"><a href="{% url 'vacancy_detail' vacancy.id %}" style="text-decoration:none; color:#0a2540;">{{ vacancy.title }}</a></h3>
+          <div style="color:#6b7280; font-size:14px;">{{ vacancy.employer.company_name }} · {{ vacancy.get_employment_type_display }} · {{ vacancy.region|default:"Регион не указан" }}</div>
+          <p style="margin:8px 0 0 0;">{{ vacancy.description|truncatewords:35 }}</p>
+        </div>
+      {% empty %}
+        <p style="color:#6b7280;">Вакансий пока нет.</p>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+

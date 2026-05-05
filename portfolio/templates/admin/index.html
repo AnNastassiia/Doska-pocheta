@@ -3,11 +3,10 @@
 {% block content %}
 <div class="module">
     <h1>Администрирование</h1>
-    <p>Для просмотра заявок и модерации перейдите на кастомную админ-панель.</p>
+    <p>Бизнес-сценарии вынесены в отдельный кабинет менеджера. Здесь остаётся только техническая админка Django.</p>
     <div class="dashboard-buttons">
-        <p><a class="button" href="{% url 'admin_dashboard' %}">Перейти в админ-панель</a></p>
-        <p><a class="button" href="{% url 'admin_moderation' %}">Модерация заявок</a></p>
-        <p><a class="button" href="{% url 'admin_orders' %}">Реестр приказов</a></p>
+        <p><a class="button" href="{% url 'manager_dashboard' %}">Открыть кабинет менеджера</a></p>
+        <p><a class="button" href="{% url 'manager_assign_role' %}">Создать пользователя / назначить менеджера</a></p>
     </div>
 </div>
 {% endblock %}

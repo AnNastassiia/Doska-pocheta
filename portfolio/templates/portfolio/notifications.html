@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block content %}
+<div style="padding:20px; background:#f8fafc; min-height:calc(100vh - 60px);">
+  <div style="max-width:900px; margin:0 auto; background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:24px;">
+    <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; align-items:center;">
+      <div>
+        <h1 style="margin:0 0 6px 0;">Уведомления</h1>
+        <p style="margin:0; color:#6b7280;">Критические события также дублируются на почту (если настроена отправка).</p>
+      </div>
+      <form method="post" action="{% url 'notifications_mark_all_read' %}">
+        {% csrf_token %}
+        <button type="submit" style="background:#0a2540; color:#fff; border:none; border-radius:8px; padding:10px 14px; font-weight:700; cursor:pointer;">
+          Отметить все как прочитанные
+        </button>
+      </form>
+    </div>
+
+    <form method="get" style="display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;">
+      <select name="mode" style="padding:8px 10px; border:1px solid #d1d5db; border-radius:8px;">
+        <option value="" {% if not mode %}selected{% endif %}>Все</option>
+        <option value="unread" {% if mode == 'unread' %}selected{% endif %}>Только непрочитанные</option>
+      </select>
+      <select name="level" style="padding:8px 10px; border:1px solid #d1d5db; border-radius:8px;">
+        <option value="" {% if not level %}selected{% endif %}>Любая важность</option>
+        {% for lv, label in levels %}
+          <option value="{{ lv }}" {% if level == lv %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" style="background:#0a2540; color:#fff; border:none; border-radius:8px; padding:8px 12px;">Применить</button>
+    </form>
+
+    <div style="margin-top:18px;">
+      {% for n in items %}
+        <div style="border:1px solid #e5e7eb; border-radius:12px; padding:14px 16px; margin-bottom:12px; background:{% if n.is_read %}#fff{% else %}#f0f8ff{% endif %};">
+          <div style="display:flex; justify-content:space-between; gap:10px; align-items:flex-start; flex-wrap:wrap;">
+            <div>
+              {% if n.title %}
+                <div style="font-weight:800; margin-bottom:4px;">{{ n.title }}</div>
+              {% endif %}
+              <div style="white-space:pre-wrap;">{{ n.message }}</div>
+              <div style="margin-top:8px; color:#6b7280; font-size:12px;">{{ n.created_at }}</div>
+              {% if n.url %}
+                <div style="margin-top:8px;">
+                  <a href="{{ n.url }}" style="color:#0a63c6; text-decoration:none;">Перейти →</a>
+                </div>
+              {% endif %}
+            </div>
+            {% if not n.is_read %}
+              <form method="post" action="{% url 'notification_mark_read' n.id %}">
+                {% csrf_token %}
+                <button type="submit" style="background:#fff; border:1px solid #d1d5db; border-radius:8px; padding:8px 12px; cursor:pointer;">
+                  Прочитано
+                </button>
+              </form>
+            {% endif %}
+          </div>
+        </div>
+      {% empty %}
+        <p style="color:#6b7280;">Пока уведомлений нет.</p>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+

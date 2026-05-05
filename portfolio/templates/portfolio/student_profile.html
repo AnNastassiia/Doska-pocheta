@@ -1,22 +1,43 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block content %}
 <div class="profile-cover"></div>
 
 <div class="profile-header">
     <div class="container">
         <div class="profile-top">
-            {% if student.photo %}
-                <img src="{{ student.photo.url }}" alt="{{ student.full_name }}" class="profile-photo">
-            {% else %}
-                <img src="/static/sample-student.jpg" alt="{{ student.full_name }}" class="profile-photo">
-            {% endif %}
+            <div class="profile-photo-wrap">
+                {% if student.is_incognito and not is_own_profile %}
+                    <img src="{% static 'default-avatar.svg' %}" alt="Фото скрыто" class="profile-photo">
+                {% else %}
+                    {% if student.photo %}
+                        <img src="{{ student.photo.url }}" alt="{{ student.full_name }}" class="profile-photo">
+                    {% else %}
+                        <img src="{% static 'default-avatar.svg' %}" alt="{{ student.full_name }}" class="profile-photo">
+                    {% endif %}
+                {% endif %}
+            </div>
             <div class="profile-info">
                 <div class="name-badge">
-                    <h1>{{ student.full_name }}</h1>
+                    <h1>
+                        {% if student.is_incognito and not is_own_profile %}
+                            Студент (Инкогнито)
+                        {% else %}
+                            {{ student.full_name }}
+                        {% endif %}
+                    </h1>
                     <span class="verified-badge">✔ Достижения подтверждены</span>
                 </div>
-                <p class="specialty">{{ student.course }}</p>
-                <span class="status-badge">Открыта к предложениям (Стажировка)</span>
+                <p class="specialty">
+                    {% if student.is_incognito and not is_own_profile %}
+                        Группа скрыта
+                    {% else %}
+                        {{ student.course }}
+                    {% endif %}
+                </p>
+                <span class="status-badge">
+                    Контакты скрыты. Связь — через запрос работодателя
+                </span>
             </div>
         </div>
     </div>
@@ -30,7 +51,11 @@
                 <!-- О себе -->
                 <section class="profile-section about-section">
                     <h2>О себе</h2>
-                    <p>Студентка 3 курса. Специализируюсь на создании адаптивных интерфейсов. Участник хакатона DigitalBreakthrough 2024. Люблю работать в команде и постоянно развиваться.</p>
+                    {% if student.about_me %}
+                        <p>{{ student.about_me|linebreaksbr }}</p>
+                    {% else %}
+                        <p style="color:#6b7280;">Студент пока не заполнил раздел «О себе».</p>
+                    {% endif %}
                 </section>
 
                 <!-- Навыки -->
@@ -51,22 +76,14 @@
                     <div class="projects-grid">
                         {% for achievement in achievements %}
                             <div class="project-card">
-                                <div class="project-image">
-                                    {% if achievement.document %}
-                                        <img src="{{ achievement.document.url }}" alt="{{ achievement.title }}">
-                                    {% else %}
-                                        <div class="placeholder">📁</div>
-                                    {% endif %}
-                                </div>
                                 <div class="project-info">
                                     <h3>{{ achievement.title }}</h3>
-                                    <p>{{ achievement.description|truncatewords:20 }}</p>
+                                    <p>{{ achievement.description|truncatewords:30 }}</p>
                                     <div class="project-tags">
                                         <span class="tag">{{ achievement.get_achievement_type_display }}</span>
                                     </div>
-                                    <div class="project-links">
-                                        <a href="#" target="_blank" class="link-btn">GitHub →</a>
-                                        <a href="#" class="link-btn">Демо →</a>
+                                    <div class="project-links" style="display:flex; gap:8px; flex-wrap:wrap;">
+                                        <a href="{{ achievement.link }}" target="_blank" class="link-btn" rel="noopener">Открыть ссылку →</a>
                                     </div>
                                 </div>
                             </div>
@@ -76,23 +93,9 @@
                     </div>
                 </section>
 
-                <!-- Достижения -->
                 <section class="profile-section achievements-section">
                     <h2>Достижения и Сертификаты</h2>
-                    <div class="achievements-gallery">
-                        <div class="cert-item">
-                            <img src="/static/sample-cert.jpg" alt="Сертификат">
-                            <p>Cisco Certified Associate</p>
-                        </div>
-                        <div class="cert-item">
-                            <img src="/static/sample-cert.jpg" alt="Сертификат">
-                            <p>Python Institute</p>
-                        </div>
-                        <div class="cert-item">
-                            <img src="/static/sample-cert.jpg" alt="Сертификат">
-                            <p>1C:Профессионал</p>
-                        </div>
-                    </div>
+                    <p style="color:#6b7280;">Подтвержденные проекты и достижения отображаются в разделе «Портфолио проектов» выше.</p>
                 </section>
             </div>
 
@@ -104,24 +107,45 @@
                         <div style="background: #f0f8ff; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
                             <h3>Контактные данные</h3>
                             <p><strong>Email:</strong> {{ student.contact_email }}</p>
-                            <p><strong>Телефон:</strong> +7 (999) 123-45-67</p>
-                            <p><strong>Соцсети:</strong> <a href="{{ student.social_link }}" target="_blank">{{ student.social_link }}</a></p>
+                            {% if student.phone %}<p><strong>Телефон:</strong> {{ student.phone }}</p>{% endif %}
+                            {% if student.telegram %}<p><strong>Telegram:</strong> {{ student.telegram }}</p>{% endif %}
+                            {% if student.whatsapp %}<p><strong>WhatsApp:</strong> {{ student.whatsapp }}</p>{% endif %}
+                            {% if student.social_link %}<p><strong>Соцсети:</strong> <a href="{{ student.social_link }}" target="_blank">{{ student.social_link }}</a></p>{% endif %}
+                            {% if student.preferred_contact_note %}<p><strong>Предпочтительно:</strong> {{ student.preferred_contact_note }}</p>{% endif %}
                         </div>
                     {% elif is_own_profile %}
                         <!-- Это профиль самого студента -->
-                        <p style="color: #666;">Это ваш профиль. Работодатели видят ваши контакты при запросе.</p>
+                        <p style="color: #666;">Это ваш профиль. Контакты открываются работодателю только после вашего одобрения запроса.</p>
+                        <a href="{% url 'student_contact_requests' %}" class="btn-primary" style="display:inline-block; text-decoration:none; margin-top:8px;">Мои запросы контакта</a>
                     {% elif user.is_authenticated %}
                         <!-- Пользователь аутентифицирован, но не работодатель или профиль не одобрен -->
-                        {% if user.employer.is_approved %}
-                            <p style="color: #d97706;">Запросите контакты этого студента</p>
-                            <a href="{% url 'request_contact' student.id %}" class="btn-primary" style="display: block; text-align: center; text-decoration: none; margin-top: 10px;">Запросить контактные данные</a>
+                        {% if is_employer_user and is_employer_approved and is_student_adult %}
+                            {% if contact_request_status == 'approved_by_student' %}
+                                <p style="color:#166534;"><strong>Запрос одобрен студентом. Контакты раскрыты.</strong></p>
+                            {% elif contact_request_status == 'pending_student' %}
+                                <p style="color:#1d4ed8;"><strong>Запрос уже отправлен. Ожидайте решения студента.</strong></p>
+                            {% elif contact_request_status == 'rejected_by_student' %}
+                                <p style="color:#b91c1c;"><strong>Студент отклонил предыдущий запрос. Можно отправить новый.</strong></p>
+                            {% endif %}
+                            <form method="post" action="{% url 'request_contact' student.id %}" style="margin-top:10px;">
+                                {% csrf_token %}
+                                <textarea name="message" rows="3" placeholder="Комментарий к запросу (необязательно)" style="width:100%; border:1px solid #d1d5db; border-radius:8px; padding:8px; margin-bottom:8px;"></textarea>
+                                <button type="submit" class="btn-primary" style="display:block; width:100%; text-align:center;">Отправить запрос на связь</button>
+                            </form>
+                        {% elif is_employer_user and is_employer_approved and not is_student_adult %}
+                            <p style="color: #dc2626;">
+                                Связаться со студентом пока нельзя: студенту еще нет 18 лет.
+                                Профиль доступен только для просмотра работ.
+                            </p>
+                        {% elif is_employer_user and not is_employer_approved %}
+                            <p style="color: #dc2626;">Ваш профиль ожидает одобрения менеджером. После одобрения вы сможете видеть контакты студентов.</p>
                         {% else %}
-                            <p style="color: #dc2626;">Ваш профиль ожидает одобрения администратором. После одобрения вы сможете видеть контакты студентов.</p>
+                            <p style="color: #666;">Чтобы связаться со студентом, войдите как одобренный работодатель и отправьте запрос.</p>
                         {% endif %}
                     {% else %}
                         <!-- Не аутентифицирован -->
-                        <a href="{% url 'signup' %}?type=employer&redirect_to=/profile/{{ student.id }}/" class="btn-primary" style="display: block; text-align: center; padding: 12px; background: #0a2540; color: white; text-decoration: none; border-radius: 6px; margin-bottom: 10px;">Запросить контактные данные</a>
-                        <p class="contact-hint">Зарегистрируйтесь как работодатель, чтобы запросить контакты.</p>
+                        <a href="{% url 'signup' %}?type=employer&redirect_to=/profile/{{ student.id }}/" class="btn-primary" style="display: block; text-align: center; padding: 12px; background: #0a2540; color: white; text-decoration: none; border-radius: 6px; margin-bottom: 10px;">Отправить запрос на связь</a>
+                        <p class="contact-hint">Зарегистрируйтесь как работодатель, чтобы отправить запрос студенту.</p>
                     {% endif %}
                 </div>
             </div>

@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block content %}
 <div class="dashboard-wrapper">
     <!-- Основная область -->
@@ -9,7 +10,7 @@
             {% if employer %}
                 <p>Вы зарегистрированы как работодатель: <strong>{{ employer.company_name }}</strong></p>
                 <p>Статус: <strong>{{ profile_status }}</strong></p>
-                <p>После одобрения администрацией вы получите доступ к запросам контактов студентов.</p>
+                <p>После одобрения менеджером вы получите доступ к запросам контактов студентов.</p>
             {% elif student %}
                 <p>Статус профиля: <strong>{{ profile_status }}</strong></p>
             {% endif %}
@@ -23,43 +24,116 @@
                         <li>Контактное лицо: {{ employer.contact_person }}</li>
                         <li>Цель: {{ employer.registration_purpose }}</li>
                     </ul>
-                    <a href="/edit-employer-profile/" class="btn-primary">Редактировать профиль</a>
+                    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                        <a href="/edit-employer-profile/" class="btn-primary" style="text-decoration:none;">Редактировать профиль</a>
+                        <a href="{% url 'employer_vacancies' %}" class="btn-primary" style="text-decoration:none;">Мои вакансии</a>
+                        <a href="{% url 'vacancy_create' %}" class="btn-primary" style="text-decoration:none;">Новая вакансия</a>
+                        <a href="{% url 'employer_applications' %}" class="btn-primary" style="text-decoration:none;">Отклики студентов</a>
+                    </div>
                 </section>
             {% endif %}
 
             {% if student %}
-            <!-- О себе -->
             <section class="profile-section">
-                <h2>О себе</h2>
-                <form method="post" action="/dashboard/update-bio/">
-                    {% csrf_token %}
-                    <textarea name="bio" placeholder="Расскажите о себе, ваших интересах и целях..." rows="5" class="textarea-field">Студентка 3 курса. Специализируюсь на создании адаптивных интерфейсов.</textarea>
-                    <button type="submit" class="btn-primary">Сохранить</button>
-                </form>
-            </section>
+                <h2>Данные профиля</h2>
+                <p style="color:#6b7280;">Все поля профиля (фото, о себе, навыки и приватность) редактируются на этой странице одним сохранением.</p>
+                {% if save_message %}
+                    <p style="color:#166534;"><strong>{{ save_message }}</strong></p>
+                {% endif %}
+                {% if student.rejection_reason and not student.is_submitted_for_review %}
+                    <p style="color:#b91c1c;"><strong>Причина последнего отказа:</strong> {{ student.rejection_reason }}</p>
+                {% endif %}
 
-            <!-- Навыки -->
-            <section class="profile-section">
-                <h2>Навыки</h2>
-                <div class="skills-input">
-                    <input type="text" id="skill-input" placeholder="Введите навык и нажмите Enter...">
+                <div style="background:#f8fafc; border:1px solid #e5e7eb; border-radius:8px; padding:12px; margin-bottom:12px;">
+                    <strong>Manager-owned поля</strong>
+                    <p style="margin:8px 0 0; color:#6b7280;">Эти данные видны студенту, но редактируются только менеджером.</p>
+                    <p style="margin:8px 0 0;"><strong>ФИО:</strong> {{ student.full_name }}</p>
+                    <p style="margin:4px 0 0;"><strong>Группа / специальность:</strong> {{ student.course }}</p>
+                    <p style="margin:4px 0 0;"><strong>Дата рождения:</strong> {{ student.birth_date|default:"Не указана" }}</p>
+                    <p style="margin:4px 0 0;"><strong>Логин / почта аккаунта:</strong> {{ student.user.email }}</p>
                 </div>
-                <div class="skills-list">
-                    {% for skill in student.skills.all %}
-                        <span class="skill-badge">
-                            {{ skill.name }}
-                            <button type="button" class="remove-skill" data-skill-id="{{ skill.id }}">✕</button>
-                        </span>
-                    {% endfor %}
-                </div>
-                <p style="color:#888; font-size:12px;">Не видите нужный навык? <a href="#">Запросить добавление</a></p>
+
+                <form method="post" enctype="multipart/form-data" id="dashboard-student-form">
+                    {% csrf_token %}
+                    {% if dashboard_form.non_field_errors %}
+                        <div class="field-error">{{ dashboard_form.non_field_errors }}</div>
+                    {% endif %}
+
+                    <h3 style="margin-top:0;">Фото</h3>
+                    <div class="photo-editor">
+                        {% if student.photo %}
+                            <img src="{{ student.photo.url }}" alt="{{ student.full_name }}" class="photo-preview" id="photo-preview" data-original-src="{{ student.photo.url }}">
+                        {% else %}
+                            <img src="{% static 'default-avatar.svg' %}" alt="Фото по умолчанию" class="photo-preview" id="photo-preview" data-original-src="{% static 'default-avatar.svg' %}">
+                        {% endif %}
+                    </div>
+                    <p>
+                        {{ dashboard_form.photo.label_tag }}<br>
+                        {{ dashboard_form.photo }}
+                        <small style="display:block; color:#6b7280; margin-top:4px;">Превью обновится сразу после выбора файла. Форматы: JPG, PNG, WEBP, GIF. До 5 МБ.</small>
+                        <span class="field-error" id="photo-client-error" style="display:none;"></span>
+                        {% if dashboard_form.photo.errors %}<span class="field-error">{{ dashboard_form.photo.errors }}</span>{% endif %}
+                    </p>
+
+                    <h3>О себе и контакты</h3>
+                    <p>
+                        {{ dashboard_form.about_me.label_tag }}<br>
+                        {{ dashboard_form.about_me }}
+                        <small style="display:block; color:#6b7280; margin-top:4px;">{{ dashboard_form.about_me.help_text }}</small>
+                        <small id="about-me-counter" style="display:block; color:#6b7280;">0 / 1000</small>
+                        {% if dashboard_form.about_me.errors %}<span class="field-error">{{ dashboard_form.about_me.errors }}</span>{% endif %}
+                    </p>
+                    <p>{{ dashboard_form.contact_email.label_tag }}<br>{{ dashboard_form.contact_email }}{% if dashboard_form.contact_email.errors %}<span class="field-error">{{ dashboard_form.contact_email.errors }}</span>{% endif %}</p>
+                    <p>{{ dashboard_form.phone.label_tag }}<br>{{ dashboard_form.phone }}{% if dashboard_form.phone.errors %}<span class="field-error">{{ dashboard_form.phone.errors }}</span>{% endif %}</p>
+                    <p>{{ dashboard_form.telegram.label_tag }}<br>{{ dashboard_form.telegram }}{% if dashboard_form.telegram.errors %}<span class="field-error">{{ dashboard_form.telegram.errors }}</span>{% endif %}</p>
+                    <p>{{ dashboard_form.whatsapp.label_tag }}<br>{{ dashboard_form.whatsapp }}{% if dashboard_form.whatsapp.errors %}<span class="field-error">{{ dashboard_form.whatsapp.errors }}</span>{% endif %}</p>
+                    <p>{{ dashboard_form.preferred_contact_note.label_tag }}<br>{{ dashboard_form.preferred_contact_note }}{% if dashboard_form.preferred_contact_note.errors %}<span class="field-error">{{ dashboard_form.preferred_contact_note.errors }}</span>{% endif %}</p>
+                    <p>{{ dashboard_form.social_link.label_tag }}<br>{{ dashboard_form.social_link }}{% if dashboard_form.social_link.errors %}<span class="field-error">{{ dashboard_form.social_link.errors }}</span>{% endif %}</p>
+
+                    <h3>Навыки</h3>
+                    <p>
+                        {{ dashboard_form.skills.label_tag }}<br>
+                        {{ dashboard_form.skills }}
+                        {% if dashboard_form.skills.errors %}<span class="field-error">{{ dashboard_form.skills.errors }}</span>{% endif %}
+                    </p>
+                    <p>
+                        {{ dashboard_form.custom_skills.label_tag }}<br>
+                        {{ dashboard_form.custom_skills }}
+                        <small style="display:block; color:#6b7280; margin-top:4px;">{{ dashboard_form.custom_skills.help_text }}</small>
+                        {% if dashboard_form.custom_skills.errors %}<span class="field-error">{{ dashboard_form.custom_skills.errors }}</span>{% endif %}
+                    </p>
+
+                    <h3>Приватность</h3>
+                    <label class="checkbox-label">{{ dashboard_form.hide_contacts }} Скрыть контактные данные</label>
+                    <label class="checkbox-label">{{ dashboard_form.is_private }} Сделать профиль приватным</label>
+                    <label class="checkbox-label">{{ dashboard_form.is_incognito }} Режим «Инкогнито»</label>
+                    <p style="color:#6b7280; margin-top:8px;">
+                        Текущий статус:
+                        <strong>
+                            {% if student.is_private %}
+                                Профиль скрыт полностью
+                            {% elif student.is_incognito %}
+                                Инкогнито (личность скрыта)
+                            {% else %}
+                                Профиль открыт (контакты работодателям не показываются — только запрос)
+                            {% endif %}
+                        </strong>
+                    </p>
+
+                    <button type="submit" class="btn-primary">Сохранить изменения профиля</button>
+                </form>
             </section>
 
             <!-- Управление портфолио -->
             <section class="profile-section">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                     <h2>Мое портфолио</h2>
-                    <a href="/add-project/" class="btn-add-project">+ Добавить проект</a>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <a href="/add-project/" class="btn-add-project">+ Добавить проект</a>
+                        <a href="{% url 'vacancies_list' %}" class="btn-add-project" style="background:#0a2540; color:#fff;">Смотреть вакансии</a>
+                        <a href="{% url 'student_applications' %}" class="btn-add-project" style="background:#166534; color:#fff;">Мои отклики</a>
+                        <a href="{% url 'student_contact_requests' %}" class="btn-add-project" style="background:#92400e; color:#fff;">Запросы контакта</a>
+                    </div>
                 </div>
 
                 {% if student.achievements.all %}
@@ -77,12 +151,16 @@
                                 </div>
                                 <div class="project-details">
                                     <h3>{{ project.title }}</h3>
-                                    <p>{{ project.description|truncatewords:15 }}</p>
-                                    <small>{{ project.get_achievement_type_display }} • {{ project.date_achieved }}</small>
+                                    {% if project.description %}
+                                        <p>{{ project.description|truncatewords:15 }}</p>
+                                    {% else %}
+                                        <p style="color:#6b7280;">Описание не указано.</p>
+                                    {% endif %}
+                                    <small>Ссылка: <a href="{{ project.link }}" target="_blank" rel="noopener">{{ project.link|truncatechars:45 }}</a></small>
                                 </div>
                                 <div class="project-actions">
                                     {% if not project.is_approved %}
-                                        <a href="/edit-project/{{ project.id }}/" class="action-btn">Редактировать</a>
+                                        <a href="{% url 'edit_project' project.id %}" class="action-btn">Редактировать</a>
                                     {% endif %}
                                     {% if project.admin_comment %}
                                         <button class="action-btn warning" data-comment="{{ project.admin_comment }}">📝 Комментарий</button>
@@ -96,51 +174,10 @@
                 {% endif %}
             </section>
 
-            <!-- Настройки приватности (Quick Access) -->
-            <section class="profile-section">
-                <h2>Быстрые настройки</h2>
-                <form method="post" action="/dashboard/update-privacy/">
-                    {% csrf_token %}
-                    <label class="checkbox-label">
-                        <input type="checkbox" name="show_profile" {% if not student.is_private %}checked{% endif %}>
-                        <span>Показывать мой профиль в поиске работодателей</span>
-                    </label>
-                    <label class="checkbox-label">
-                        <input type="checkbox" name="hide_email" {% if student.hide_contacts %}checked{% endif %}>
-                        <span>Скрыть мой email (видно только через запрос)</span>
-                    </label>
-                    <button type="submit" class="btn-primary">Сохранить</button>
-                </form>
-                <hr>
-                <a href="/change-password/" class="action-btn">🔐 Сменить пароль</a>
-            </section>
             {% endif %}
         </div>
     </main>
 </div>
-
-<script>
-    // Добавление навыков
-    document.getElementById('skill-input')?.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            const skillName = this.value.trim();
-            if (skillName) {
-                // Отправить AJAX запрос на добавление навыка
-                fetch('/add-skill/', {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ skill: skillName })
-                }).then(r => r.json()).then(data => {
-                    if (data.success) location.reload();
-                });
-            }
-            this.value = '';
-        }
-    });
-</script>
 
 <style>
 .dashboard-wrapper {
@@ -195,6 +232,23 @@
 }
 .profile-section h2 {
     margin-top: 0;
+}
+.photo-editor {
+    margin-bottom: 12px;
+}
+.photo-preview {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    object-position: center top;
+    border: 2px solid #e5e7eb;
+}
+.field-error {
+    display: block;
+    color: #b91c1c;
+    font-size: 12px;
+    margin-top: 4px;
 }
 .textarea-field {
     width: 100%;
@@ -352,5 +406,152 @@ hr {
     }
 }
 </style>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const fileInput = document.getElementById('id_photo');
+    const preview = document.getElementById('photo-preview');
+    const clientError = document.getElementById('photo-client-error');
+    const aboutMeInput = document.getElementById('id_about_me');
+    const aboutMeCounter = document.getElementById('about-me-counter');
+    const maxAboutMeLength = 1000;
+    const form = document.getElementById('dashboard-student-form');
+    const maxSizeBytes = 5 * 1024 * 1024;
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    const originalSrc = preview ? preview.dataset.originalSrc : '';
+    let isProcessing = false;
+
+    function updateAboutMeCounter() {
+        if (!aboutMeInput || !aboutMeCounter) {
+            return;
+        }
+        const currentLength = (aboutMeInput.value || '').length;
+        aboutMeCounter.textContent = `${currentLength} / ${maxAboutMeLength}`;
+        aboutMeCounter.style.color = currentLength > maxAboutMeLength ? '#b91c1c' : '#6b7280';
+    }
+
+    if (aboutMeInput && aboutMeCounter) {
+        updateAboutMeCounter();
+        aboutMeInput.addEventListener('input', updateAboutMeCounter);
+    }
+
+    if (!fileInput || !preview) {
+        return;
+    }
+
+    function setClientError(message) {
+        if (!clientError) {
+            return;
+        }
+        if (!message) {
+            clientError.textContent = '';
+            clientError.style.display = 'none';
+            return;
+        }
+        clientError.textContent = message;
+        clientError.style.display = 'block';
+    }
+
+    async function compressImageFile(file) {
+        const bitmap = await createImageBitmap(file);
+        const maxDimension = 1600;
+        const scale = Math.min(1, maxDimension / Math.max(bitmap.width, bitmap.height));
+        const targetWidth = Math.max(1, Math.round(bitmap.width * scale));
+        const targetHeight = Math.max(1, Math.round(bitmap.height * scale));
+        const canvas = document.createElement('canvas');
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+            throw new Error('Не удалось подготовить изображение для сжатия.');
+        }
+        ctx.drawImage(bitmap, 0, 0, targetWidth, targetHeight);
+
+        const preferredType = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+        let quality = preferredType === 'image/jpeg' ? 0.9 : undefined;
+        let blob = await new Promise((resolve) => canvas.toBlob(resolve, preferredType, quality));
+        if (!blob) {
+            throw new Error('Не удалось обработать изображение.');
+        }
+        while (blob.size > maxSizeBytes && preferredType === 'image/jpeg' && quality > 0.45) {
+            quality = Math.max(0.45, quality - 0.1);
+            blob = await new Promise((resolve) => canvas.toBlob(resolve, preferredType, quality));
+            if (!blob) {
+                throw new Error('Не удалось обработать изображение.');
+            }
+        }
+        const extension = preferredType === 'image/png' ? 'png' : 'jpg';
+        const compressedName = (file.name || 'photo').replace(/\.[^.]+$/, '') + '_compressed.' + extension;
+        return new File([blob], compressedName, { type: preferredType, lastModified: Date.now() });
+    }
+
+    function replaceInputFile(input, file) {
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+        input.files = dataTransfer.files;
+    }
+
+    fileInput.addEventListener('change', async function () {
+        if (isProcessing) {
+            return;
+        }
+        const file = this.files && this.files[0];
+        if (!file) {
+            setClientError('');
+            return;
+        }
+        if (!allowedTypes.includes(file.type)) {
+            setClientError('Можно загрузить только JPG, PNG, WEBP или GIF.');
+            this.value = '';
+            preview.src = originalSrc;
+            return;
+        }
+        if (file.size > maxSizeBytes) {
+            try {
+                isProcessing = true;
+                setClientError('Фото больше 5 МБ. Выполняю автоматическое сжатие...');
+                const compressedFile = await compressImageFile(file);
+                if (compressedFile.size > maxSizeBytes) {
+                    setClientError('Не удалось сжать файл до 5 МБ. Выберите другое изображение.');
+                    this.value = '';
+                    preview.src = originalSrc;
+                    return;
+                }
+                replaceInputFile(this, compressedFile);
+                setClientError('Фото автоматически сжато перед отправкой.');
+            } catch (error) {
+                setClientError(error && error.message ? error.message : 'Ошибка при сжатии изображения.');
+                this.value = '';
+                preview.src = originalSrc;
+                return;
+            } finally {
+                isProcessing = false;
+            }
+        } else {
+            setClientError('');
+        }
+        const selectedFile = this.files && this.files[0];
+        if (!selectedFile) {
+            return;
+        }
+        const objectUrl = URL.createObjectURL(selectedFile);
+        preview.src = objectUrl;
+        preview.onload = function () {
+            URL.revokeObjectURL(objectUrl);
+        };
+    });
+
+    if (form) {
+        form.addEventListener('submit', function (event) {
+            if (clientError && clientError.style.display !== 'none') {
+                event.preventDefault();
+            }
+            if (aboutMeInput && (aboutMeInput.value || '').length > maxAboutMeLength) {
+                event.preventDefault();
+                updateAboutMeCounter();
+            }
+        });
+    }
+});
+</script>
 {% endblock %}
 

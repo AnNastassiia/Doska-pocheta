@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="auth-form">
+    <h2>Создание студента</h2>
+    <p style="margin-top:-6px; color:#374151;">
+        Одна форма создаёт аккаунт студента. Менеджер заполняет базовые данные, студент потом видит их, но не может изменить.
+    </p>
+
+    {% if email_sent and created_user %}
+        <div class="form-errors" style="background-color:#ecfdf5;border-color:#10b981;color:#065f46;">
+            <p style="margin:0 0 6px 0;"><strong>Аккаунт создан</strong></p>
+            <p style="margin:0;"><strong>Логин:</strong> {{ created_user.username }}</p>
+            <p style="margin:0;"><strong>Пароль:</strong> {{ plain_password }}</p>
+            <p style="margin-top:8px; margin-bottom:0;"><strong>Письмо с доступом отправлено студенту.</strong></p>
+            <p style="margin-top:8px; margin-bottom:0;">Профиль появится на доске почета только после модерации.</p>
+        </div>
+    {% endif %}
+    {% if email_error %}
+        <div class="form-errors" style="background-color:#fee2e2;border-color:#ef4444;color:#7f1d1d;">
+            <p style="margin:0;"><strong>Ошибка отправки письма:</strong> {{ email_error }}</p>
+        </div>
+    {% endif %}
+
+    <form method="post" novalidate>
+        {% csrf_token %}
+        {% if form.errors %}
+            <div class="form-errors">
+                {{ form.non_field_errors }}
+                {{ form.errors }}
+            </div>
+        {% endif %}
+        <div class="mb-3">{{ form.email.label_tag }}{{ form.email }}</div>
+        <div class="mb-3">{{ form.full_name.label_tag }}{{ form.full_name }}</div>
+        <div class="mb-3">{{ form.course.label_tag }}{{ form.course }}</div>
+        <div class="mb-3">{{ form.birth_date.label_tag }}{{ form.birth_date }}</div>
+        <p style="font-size:12px; color:#6b7280; margin-top:0;">
+            Эти поля относятся к manager-owned данным: ФИО, группа, дата рождения и логин/e-mail.
+        </p>
+        <button type="submit">Создать аккаунт</button>
+    </form>
+
+    <div style="margin-top:14px;">
+        <a href="{% url 'manager_dashboard' %}" style="color:#0a2540; text-decoration:none;">← В кабинет менеджера</a>
+    </div>
+</div>
+{% endblock %}

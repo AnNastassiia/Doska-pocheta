@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block content %}
+<div style="padding:20px; background:#f8fafc; min-height:calc(100vh - 60px);">
+  <div style="max-width:1000px; margin:0 auto; background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:20px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+      <h1 style="margin:0;">Мои вакансии</h1>
+      <div style="display:flex; gap:8px;">
+        <a href="{% url 'employer_applications' %}" style="background:#166534; color:#fff; text-decoration:none; border-radius:8px; padding:10px 14px;">Отклики студентов</a>
+        <a href="{% url 'vacancy_create' %}" style="background:#0a2540; color:#fff; text-decoration:none; border-radius:8px; padding:10px 14px;">+ Новая вакансия</a>
+      </div>
+    </div>
+    <div style="margin-top:14px; display:grid; gap:10px;">
+      {% for vacancy in vacancies %}
+        <div style="border:1px solid #e5e7eb; border-radius:10px; padding:14px;">
+          <h3 style="margin:0 0 6px 0;">{{ vacancy.title }}</h3>
+          <div style="color:#6b7280;">{{ vacancy.get_status_display }} · {{ vacancy.get_employment_type_display }}</div>
+          <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+            <a href="{% url 'vacancy_detail' vacancy.id %}" style="text-decoration:none; border:1px solid #d1d5db; border-radius:8px; padding:8px 12px;">Открыть</a>
+            <a href="{% url 'vacancy_edit' vacancy.id %}" style="text-decoration:none; border:1px solid #d1d5db; border-radius:8px; padding:8px 12px;">Редактировать</a>
+            <form method="post" action="{% url 'vacancy_delete' vacancy.id %}" onsubmit="return confirm('Удалить вакансию?');">
+              {% csrf_token %}
+              <button type="submit" style="border:1px solid #fca5a5; color:#b91c1c; background:#fff; border-radius:8px; padding:8px 12px;">Удалить</button>
+            </form>
+          </div>
+        </div>
+      {% empty %}
+        <p style="color:#6b7280;">Вакансий пока нет.</p>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="auth-form">
+    <h2>Отклик на вакансию: {{ vacancy.title }}</h2>
+    <p style="color:#6b7280;">{{ vacancy.employer.company_name }}</p>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Отправить отклик</button>
+    </form>
+</div>
+{% endblock %}
+

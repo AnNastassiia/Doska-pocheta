@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+<div class="dashboard-wrapper">
+    <main class="dashboard-main">
+        <div class="dashboard-content">
+            <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:12px; flex-wrap:wrap;">
+                <div>
+                    <h1>Все студенты</h1>
+                    <p style="color:#6b7280;">Просмотр профилей и управление публикацией на доске почёта.</p>
+                </div>
+                <form method="get" style="display:flex; gap:8px; align-items:center;">
+                    <input type="text" name="q" value="{{ q }}" placeholder="Поиск: ФИО, группа, email" style="padding:10px 12px; border:1px solid #d1d5db; border-radius:8px; min-width:260px;">
+                    <button class="btn-primary" type="submit" style="width:auto;">Найти</button>
+                </form>
+            </div>
+
+            <div style="margin-top:18px;">
+                {% for student in students %}
+                    <section class="profile-section">
+                        <div style="display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap;">
+                            <div style="display:flex; gap:12px; align-items:flex-start;">
+                                {% if student.photo %}
+                                    <img src="{{ student.photo.url }}" alt="{{ student.full_name }}" class="student-photo-preview">
+                                {% else %}
+                                    <img src="{% static 'default-avatar.svg' %}" alt="Фото по умолчанию" class="student-photo-preview">
+                                {% endif %}
+                                <div>
+                                    <h2 style="margin:0 0 6px 0;">{{ student.full_name }}</h2>
+                                    <p style="margin:0;"><strong>Группа:</strong> {{ student.course }}</p>
+                                    <p style="margin:4px 0 0;"><strong>Email:</strong> {{ student.user.email }}</p>
+                                    <p style="margin:8px 0 0;">
+                                        <strong>Статус:</strong>
+                                        {% if student.is_approved %}
+                                            <span style="color:#1f7d3d;">на доске почёта</span>
+                                        {% elif student.is_submitted_for_review %}
+                                            <span style="color:#1d4ed8;">на модерации</span>
+                                        {% else %}
+                                            <span style="color:#6b7280;">черновик / не опубликован</span>
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </div>
+                            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                                <a href="{% url 'student_profile' student.id %}" class="action-btn" style="text-decoration:none;">Открыть профиль</a>
+                                {% if student.is_approved %}
+                                    <form method="post" action="{% url 'manager_unpublish_student' student.id %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="action-btn warning">Снять с доски</button>
+                                    </form>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </section>
+                {% empty %}
+                    <p>Студенты не найдены.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </main>
+</div>
+
+<style>
+.dashboard-wrapper {
+    padding: 20px;
+    background: #f8fafc;
+    min-height: calc(100vh - 60px);
+}
+.dashboard-main {
+    max-width: 1200px;
+    margin: 0 auto;
+    background:#fff;
+    border-radius:12px;
+    padding:32px;
+}
+.profile-section {
+    border:1px solid #e5e7eb;
+    border-radius:12px;
+    padding:18px;
+    margin-bottom:14px;
+}
+.student-photo-preview {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    object-fit: cover;
+    object-position: center top;
+    border: 2px solid #e5e7eb;
+}
+.action-btn {
+    padding: 10px 14px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background: #fff;
+    color: #0a2540;
+    cursor: pointer;
+    font-size: 13px;
+}
+.action-btn.warning {
+    border-color:#fca5a5;
+    color:#b91c1c;
+}
+.btn-primary {
+    background: #0a2540;
+    color: #fff;
+    border: none;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+}
+</style>
+{% endblock %}

@@ -2,6 +2,38 @@ from django.db import models
 
 # Create your models here.
 from django.contrib.auth.models import User
+from django.utils import timezone
+
+
+class ManagerProfile(models.Model):
+    """
+    Операционный менеджер: работает со студентами, работодателями и модерацией.
+    Это отдельная роль от технического администратора Django.
+    """
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name='manager_profile',
+        verbose_name="Пользователь",
+    )
+    full_name = models.CharField(
+        max_length=200,
+        verbose_name="ФИО менеджера"
+    )
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name="Активен"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.full_name
+
+    class Meta:
+        verbose_name = "Менеджер"
+        verbose_name_plural = "Менеджеры"
+        ordering = ['full_name']
 
 
 class Skill(models.Model):
@@ -41,9 +73,22 @@ class Student(models.Model):
         blank=True,
         verbose_name="Ссылка на соцсеть"
     )
+    about_me = models.TextField(
+        blank=True,
+        verbose_name="О себе"
+    )
+    birth_date = models.DateField(
+        blank=True,
+        null=True,
+        verbose_name="Дата рождения"
+    )
     is_approved = models.BooleanField(
         default=False,
         verbose_name="Профиль одобрен администратором"
+    )
+    is_submitted_for_review = models.BooleanField(
+        default=False,
+        verbose_name="Отправлен на модерацию"
     )
     photo = models.ImageField(
         upload_to='students/photos/',
@@ -59,6 +104,26 @@ class Student(models.Model):
     contact_email = models.EmailField(
         blank=True,
         verbose_name="Контактный email"
+    )
+    phone = models.CharField(
+        max_length=50,
+        blank=True,
+        verbose_name="Телефон"
+    )
+    telegram = models.CharField(
+        max_length=100,
+        blank=True,
+        verbose_name="Telegram"
+    )
+    whatsapp = models.CharField(
+        max_length=100,
+        blank=True,
+        verbose_name="WhatsApp"
+    )
+    preferred_contact_note = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name="Предпочтительный способ связи"
     )
     rejection_reason = models.TextField(
         blank=True,
@@ -78,6 +143,10 @@ class Student(models.Model):
         default=False,
         verbose_name="Сделать профиль приватным"
     )
+    is_incognito = models.BooleanField(
+        default=False,
+        verbose_name="Режим инкогнито (скрыть личность)"
+    )
     created_at = models.DateTimeField(
         auto_now_add=True,
         verbose_name="Дата создания"
@@ -86,6 +155,20 @@ class Student(models.Model):
         auto_now=True,
         verbose_name="Дата обновления"
     )
+
+    @property
+    def is_adult(self):
+        """
+        True, если студенту уже исполнилось 18 лет.
+        """
+        if not self.birth_date:
+            return False
+        today = timezone.localdate()
+        years = today.year - self.birth_date.year
+        if (today.month, today.day) < (self.birth_date.month, self.birth_date.day):
+            years -= 1
+        return years >= 18
+
     def __str__(self):
         return f"{self.full_name} ({self.course})"
     class Meta:
@@ -114,7 +197,15 @@ class Achievement(models.Model):
     )
     
     description = models.TextField(
-        verbose_name="Подробное описание"
+        blank=True,
+        verbose_name="Описание (необязательно)"
+    )
+
+    link = models.URLField(
+        max_length=500,
+        blank=True,
+        default='',
+        verbose_name="Ссылка (GitHub / PDF / сайт проекта)"
     )
     
     # Тип достижения (проект, грамота, практика и т.д.)
@@ -133,23 +224,10 @@ class Achievement(models.Model):
         verbose_name="Тип достижения"
     )
     
-    # Файлы (сканы грамот, проекты и т.д.)
-    document = models.FileField(
-        upload_to='achievements/documents/',
-        blank=True,
-        null=True,
-        verbose_name="Документ (грамота, сертификат)"
-    )
-    
-    project_file = models.FileField(
-        upload_to='achievements/projects/',
-        blank=True,
-        null=True,
-        verbose_name="Файл проекта"
-    )
-    
     date_achieved = models.DateField(
-        verbose_name="Дата получения"
+        blank=True,
+        null=True,
+        verbose_name="Дата добавления"
     )
     
     # Одобрено ли администратором для публикации
@@ -170,6 +248,11 @@ class Achievement(models.Model):
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        if not self.date_achieved:
+            self.date_achieved = timezone.localdate()
+        super().save(*args, **kwargs)
     
     def __str__(self):
         return f"{self.student.full_name}: {self.title}"
@@ -181,35 +264,39 @@ class Achievement(models.Model):
 
 
 class ContactRequest(models.Model):
+    STATUS_CHOICES = [
+        ('pending_student', 'Ожидает решения студента'),
+        ('approved_by_student', 'Одобрен студентом'),
+        ('rejected_by_student', 'Отклонен студентом'),
+        ('expired', 'Истек'),
+    ]
+
     employer = models.ForeignKey(
         'Employer', on_delete=models.CASCADE, related_name='contact_requests', verbose_name='Работодатель'
     )
     student = models.ForeignKey(
         Student, on_delete=models.CASCADE, related_name='contact_requests', verbose_name='Студент'
     )
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата запроса')
-    is_handled = models.BooleanField(default=False, verbose_name='Обработано')
+    status = models.CharField(
+        max_length=30,
+        choices=STATUS_CHOICES,
+        default='pending_student',
+        verbose_name='Статус'
+    )
+    employer_message = models.TextField(blank=True, verbose_name='Комментарий работодателя')
+    student_response_message = models.TextField(blank=True, verbose_name='Ответ студента')
+    requested_at = models.DateTimeField(default=timezone.now, verbose_name='Дата запроса')
+    responded_at = models.DateTimeField(blank=True, null=True, verbose_name='Дата ответа студента')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата создания')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='Дата обновления')
 
     class Meta:
         verbose_name = 'Запрос контактов'
         verbose_name_plural = 'Запросы контактов'
         ordering = ['-created_at']
-
-
-class EnrollmentOrder(models.Model):
-    student = models.ForeignKey(
-        Student, on_delete=models.CASCADE, related_name='enrollment_orders', verbose_name='Студент'
-    )
-    file = models.FileField(upload_to='orders/', verbose_name='Файл приказа (PDF)')
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата загрузки')
-    assigned_by = models.ForeignKey(
-        'auth.User', on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Поставил статус'
-    )
-
-    class Meta:
-        verbose_name = 'Приказ зачисления'
-        verbose_name_plural = 'Приказы зачисления'
-        ordering = ['-created_at']
+        constraints = [
+            models.UniqueConstraint(fields=['employer', 'student'], name='unique_contact_request_per_pair')
+        ]
 
 
 class Employer(models.Model):
@@ -261,3 +348,110 @@ class Employer(models.Model):
         verbose_name = "Работодатель"
         verbose_name_plural = "Работодатели"
         ordering = ['company_name']        
+
+
+class Notification(models.Model):
+    LEVEL_CHOICES = [
+        ('info', 'Информация'),
+        ('success', 'Успех'),
+        ('warning', 'Предупреждение'),
+        ('danger', 'Важно'),
+    ]
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='notifications',
+        verbose_name='Пользователь',
+    )
+    title = models.CharField(max_length=200, blank=True, default='', verbose_name='Заголовок')
+    message = models.TextField(verbose_name='Сообщение')
+    url = models.CharField(max_length=500, blank=True, default='', verbose_name='Ссылка')
+    level = models.CharField(max_length=20, choices=LEVEL_CHOICES, default='info', verbose_name='Уровень')
+    is_read = models.BooleanField(default=False, verbose_name='Прочитано')
+    is_seen = models.BooleanField(default=False, verbose_name='Показано во всплывающем уведомлении')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Создано')
+
+    class Meta:
+        verbose_name = 'Уведомление'
+        verbose_name_plural = 'Уведомления'
+        ordering = ['-created_at']
+
+    def __str__(self) -> str:
+        return f'{self.user_id}: {self.title or self.level}'
+
+
+class Vacancy(models.Model):
+    EMPLOYMENT_TYPES = [
+        ('internship', 'Стажировка'),
+        ('part_time', 'Частичная занятость'),
+        ('full_time', 'Полная занятость'),
+        ('project', 'Проектная работа'),
+    ]
+    STATUS_CHOICES = [
+        ('draft', 'Черновик'),
+        ('published', 'Опубликована'),
+        ('closed', 'Закрыта'),
+    ]
+
+    employer = models.ForeignKey(
+        Employer,
+        on_delete=models.CASCADE,
+        related_name='vacancies',
+        verbose_name='Работодатель'
+    )
+    title = models.CharField(max_length=200, verbose_name='Название вакансии')
+    description = models.TextField(verbose_name='Описание')
+    requirements = models.TextField(blank=True, verbose_name='Требования')
+    region = models.CharField(max_length=150, blank=True, verbose_name='Регион')
+    tech_stack = models.CharField(max_length=255, blank=True, verbose_name='Стек технологий')
+    employment_type = models.CharField(max_length=20, choices=EMPLOYMENT_TYPES, default='internship', verbose_name='Формат')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft', verbose_name='Статус')
+    is_public = models.BooleanField(default=True, verbose_name='Публичная')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Вакансия'
+        verbose_name_plural = 'Вакансии'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.title} ({self.employer.company_name})'
+
+
+class Application(models.Model):
+    STATUS_CHOICES = [
+        ('submitted', 'Отправлен'),
+        ('reviewing', 'На рассмотрении'),
+        ('accepted', 'Принят'),
+        ('rejected', 'Отклонен'),
+    ]
+
+    vacancy = models.ForeignKey(
+        Vacancy,
+        on_delete=models.CASCADE,
+        related_name='applications',
+        verbose_name='Вакансия'
+    )
+    student = models.ForeignKey(
+        Student,
+        on_delete=models.CASCADE,
+        related_name='applications',
+        verbose_name='Студент'
+    )
+    message = models.TextField(blank=True, verbose_name='Сопроводительное сообщение')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='submitted', verbose_name='Статус')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Отклик'
+        verbose_name_plural = 'Отклики'
+        ordering = ['-created_at']
+        constraints = [
+            models.UniqueConstraint(fields=['vacancy', 'student'], name='unique_student_application_per_vacancy')
+        ]
+
+    def __str__(self):
+        return f'{self.student.full_name} -> {self.vacancy.title}'

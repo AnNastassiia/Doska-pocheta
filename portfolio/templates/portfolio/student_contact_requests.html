@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% block content %}
+<div style="padding:20px; background:#f8fafc; min-height:calc(100vh - 60px);">
+  <div style="max-width:1000px; margin:0 auto; background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:20px;">
+    <h1 style="margin-top:0;">Запросы контакта</h1>
+    <p style="color:#6b7280;">Здесь вы решаете, можно ли работодателю получить ваши контакты.</p>
+    <div style="display:grid; gap:10px;">
+      {% for req in requests %}
+        <div style="border:1px solid #e5e7eb; border-radius:10px; padding:14px;">
+          <h3 style="margin:0 0 4px 0;">{{ req.employer.company_name }}</h3>
+          <div style="color:#6b7280;">{{ req.employer.contact_person }} · {{ req.employer.user.email }}</div>
+          <p style="margin:8px 0 0 0;"><strong>Статус:</strong> {{ req.get_status_display }}</p>
+          {% if req.employer_message %}
+            <p style="margin:8px 0 0 0;"><strong>Комментарий работодателя:</strong> {{ req.employer_message }}</p>
+          {% endif %}
+          {% if req.student_response_message %}
+            <p style="margin:8px 0 0 0;"><strong>Ваш ответ:</strong> {{ req.student_response_message }}</p>
+          {% endif %}
+
+          {% if req.status == 'pending_student' %}
+            <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
+              <form method="post" action="{% url 'approve_contact_request' req.id %}">
+                {% csrf_token %}
+                <textarea name="response_message" rows="2" placeholder="Комментарий (необязательно)" style="display:block; width:280px; margin-bottom:8px; border:1px solid #d1d5db; border-radius:8px; padding:8px;"></textarea>
+                <button type="submit" style="border:none; background:#166534; color:#fff; border-radius:8px; padding:8px 12px;">Одобрить</button>
+              </form>
+              <form method="post" action="{% url 'reject_contact_request' req.id %}">
+                {% csrf_token %}
+                <textarea name="response_message" rows="2" placeholder="Комментарий (необязательно)" style="display:block; width:280px; margin-bottom:8px; border:1px solid #d1d5db; border-radius:8px; padding:8px;"></textarea>
+                <button type="submit" style="border:1px solid #fca5a5; background:#fff; color:#b91c1c; border-radius:8px; padding:8px 12px;">Отклонить</button>
+              </form>
+            </div>
+          {% endif %}
+        </div>
+      {% empty %}
+        <p style="color:#6b7280;">Запросов пока нет.</p>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block content %}
+<div style="padding:20px; background:#f8fafc; min-height:calc(100vh - 60px);">
+  <div style="max-width:900px; margin:0 auto; background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:24px;">
+    <h1 style="margin-top:0;">{{ vacancy.title }}</h1>
+    <p style="color:#6b7280;">{{ vacancy.employer.company_name }} · {{ vacancy.get_employment_type_display }} · {{ vacancy.region|default:"Регион не указан" }}</p>
+    <h3>Описание</h3>
+    <p style="white-space:pre-wrap;">{{ vacancy.description }}</p>
+    {% if vacancy.requirements %}
+      <h3>Требования</h3>
+      <p style="white-space:pre-wrap;">{{ vacancy.requirements }}</p>
+    {% endif %}
+    {% if vacancy.tech_stack %}
+      <p><strong>Стек:</strong> {{ vacancy.tech_stack }}</p>
+    {% endif %}
+
+    {% if user.is_authenticated and can_apply %}
+      {% if already_applied %}
+        <p style="color:#166534;"><strong>Вы уже откликались на эту вакансию.</strong></p>
+      {% else %}
+        <a href="{% url 'apply_to_vacancy' vacancy.id %}" style="display:inline-block; text-decoration:none; background:#0a2540; color:#fff; border-radius:8px; padding:10px 14px;">Откликнуться</a>
+      {% endif %}
+    {% elif not user.is_authenticated %}
+      <a href="{% url 'login' %}" style="display:inline-block; text-decoration:none; background:#0a2540; color:#fff; border-radius:8px; padding:10px 14px;">Войти, чтобы откликнуться</a>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+

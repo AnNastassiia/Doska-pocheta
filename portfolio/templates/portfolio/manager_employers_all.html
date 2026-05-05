@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="dashboard-wrapper">
+    <main class="dashboard-main">
+        <div class="dashboard-content">
+            <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:12px; flex-wrap:wrap;">
+                <div>
+                    <h1>Все работодатели</h1>
+                    <p style="color:#6b7280;">Просмотр и управление доступом к контактам студентов.</p>
+                </div>
+                <form method="get" style="display:flex; gap:8px; align-items:center;">
+                    <input type="text" name="q" value="{{ q }}" placeholder="Поиск: компания, контакт, email" style="padding:10px 12px; border:1px solid #d1d5db; border-radius:8px; min-width:260px;">
+                    <button class="btn-primary" type="submit" style="width:auto;">Найти</button>
+                </form>
+            </div>
+
+            <div style="margin-top:18px;">
+                {% for employer in employers %}
+                    <section class="profile-section">
+                        <div style="display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap;">
+                            <div>
+                                <h2 style="margin:0 0 6px 0;">{{ employer.company_name }}</h2>
+                                <p style="margin:0;"><strong>Контактное лицо:</strong> {{ employer.contact_person }}</p>
+                                <p style="margin:4px 0 0;"><strong>Email:</strong> {{ employer.user.email }}</p>
+                                <p style="margin:8px 0 0;">
+                                    <strong>Доступ к контактам:</strong>
+                                    {% if employer.is_approved %}
+                                        <span style="color:#1f7d3d;">включен</span>
+                                    {% else %}
+                                        <span style="color:#b91c1c;">отключен</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                                {% if employer.is_approved %}
+                                    <form method="post" action="{% url 'manager_block_employer' employer.id %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="redirect" value="all">
+                                        <button type="submit" class="action-btn warning">Отключить доступ</button>
+                                    </form>
+                                {% else %}
+                                    <form method="post" action="{% url 'manager_approve_employer' employer.id %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="redirect" value="all">
+                                        <button type="submit" class="btn-primary" style="width:auto;">Включить доступ</button>
+                                    </form>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </section>
+                {% empty %}
+                    <p>Работодатели не найдены.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </main>
+</div>
+
+<style>
+.dashboard-wrapper {
+    padding: 20px;
+    background: #f8fafc;
+    min-height: calc(100vh - 60px);
+}
+.dashboard-main {
+    max-width: 1200px;
+    margin: 0 auto;
+    background:#fff;
+    border-radius:12px;
+    padding:32px;
+}
+.profile-section {
+    border:1px solid #e5e7eb;
+    border-radius:12px;
+    padding:18px;
+    margin-bottom:14px;
+}
+.action-btn.warning {
+    background:#fff;
+    color:#b91c1c;
+    border:1px solid #fca5a5;
+    border-radius:8px;
+    padding:10px 14px;
+    cursor:pointer;
+}
+.btn-primary {
+    background: #0a2540;
+    color: #fff;
+    border: none;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,191 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+<div class="dashboard-wrapper">
+    <main class="dashboard-main">
+        <div class="dashboard-content">
+            <h1>Студенты на модерации</h1>
+            <p style="color:#6b7280;">Проверьте профиль, навыки и достижения. Менеджер может одобрить профиль или вернуть на доработку с причиной.</p>
+
+            {% for student in students %}
+                <section class="profile-section">
+                    <div style="display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap;">
+                        <div>
+                            <h2 style="margin-bottom:8px;">{{ student.full_name }}</h2>
+                            <p><strong>Группа:</strong> {{ student.course }}</p>
+                            <p><strong>Дата рождения:</strong> {{ student.birth_date|default:"Не указана" }}</p>
+                            <p><strong>Почта аккаунта:</strong> {{ student.user.email }}</p>
+                            <p><strong>Контактный email:</strong> {{ student.contact_email|default:"Не указан" }}</p>
+                            {% if student.rejection_reason %}
+                                <p style="color:#b91c1c;"><strong>Последняя причина отказа:</strong> {{ student.rejection_reason }}</p>
+                            {% endif %}
+                        </div>
+                        <div style="display:flex; flex-direction:column; align-items:flex-end; gap:10px;">
+                            {% if student.photo %}
+                                <img src="{{ student.photo.url }}" alt="{{ student.full_name }}" class="student-photo-preview">
+                            {% else %}
+                                <img src="{% static 'default-avatar.svg' %}" alt="Фото по умолчанию" class="student-photo-preview">
+                            {% endif %}
+                            <a href="{% url 'student_profile' student.id %}" class="action-btn" style="text-decoration:none;">Открыть профиль</a>
+                        </div>
+                    </div>
+
+                    <div style="margin-top:16px;">
+                        <h3>О себе</h3>
+                        <p>{{ student.about_me|default:"Студент пока не заполнил раздел «О себе»."|linebreaksbr }}</p>
+                    </div>
+
+                    <div style="margin-top:16px;">
+                        <h3>Навыки</h3>
+                        <div class="skills-list">
+                            {% for skill in student.skills.all %}
+                                <span class="skill-badge">{{ skill.name }}</span>
+                            {% empty %}
+                                <p style="color:#6b7280;">Навыки не добавлены.</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div style="margin-top:16px;">
+                        <h3>Достижения и проекты</h3>
+                        <ul>
+                            {% for project in student.achievements.all %}
+                                <li>
+                                    <strong>{{ project.title }}</strong> — {{ project.get_achievement_type_display }}
+                                    {% if project.link %}
+                                        — <a href="{{ project.link }}" target="_blank" rel="noopener">ссылка</a>
+                                    {% endif %}
+                                    {% if project.is_approved %}
+                                        <span style="color:#1f7d3d;">(одобрено)</span>
+                                    {% else %}
+                                        <span style="color:#b91c1c;">(ожидает проверки)</span>
+                                    {% endif %}
+                                </li>
+                            {% empty %}
+                                <li>Материалы пока не добавлены.</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+
+                    <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:16px;">
+                        <form method="post" action="{% url 'manager_approve_student' student.id %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn-primary" style="width:auto;">Одобрить профиль</button>
+                        </form>
+                        <form method="post" action="{% url 'manager_reject_student' student.id %}" style="flex:1; min-width:280px;">
+                            {% csrf_token %}
+                            <div class="reason-templates">
+                                <label class="reason-option"><input type="checkbox" class="reason-check" data-reason="Неподобающая фотография профиля. Загрузите фото в деловом/нейтральном стиле."> Неподобающая фотография</label>
+                                <label class="reason-option"><input type="checkbox" class="reason-check" data-reason="Недостаточно информации в разделе «О себе»."> Недостаточно информации о себе</label>
+                                <label class="reason-option"><input type="checkbox" class="reason-check" data-reason="Некорректно заполнены навыки. Проверьте их актуальность и формулировки."> Некорректные навыки</label>
+                                <label class="reason-option"><input type="checkbox" class="reason-check" data-reason="Проекты/достижения заполнены недостаточно подробно."> Недостаточно данных по проектам</label>
+                                <label class="reason-option"><input type="checkbox" class="reason-check reason-other-toggle"> Другое</label>
+                            </div>
+                            <input type="text" class="reason-other-input" placeholder="Укажите другую причину (если выбрано «Другое»)" style="width:100%; margin-bottom:8px; padding:10px 12px; border:1px solid #d1d5db; border-radius:6px;" />
+                            <textarea name="reason" placeholder="Причина отказа / что нужно исправить (например: фото не соответствует правилам)" style="width:100%; min-height:70px; margin-bottom:8px; padding:10px 12px; border:1px solid #d1d5db; border-radius:6px;" required></textarea>
+                            <button type="submit" class="action-btn warning">Вернуть на доработку</button>
+                        </form>
+                    </div>
+                </section>
+            {% empty %}
+                <p>Сейчас нет студентов, ожидающих проверки.</p>
+            {% endfor %}
+        </div>
+    </main>
+</div>
+
+<style>
+.dashboard-wrapper {
+    padding: 20px;
+    background: #f8fafc;
+    min-height: calc(100vh - 60px);
+}
+.dashboard-main {
+    max-width: 1200px;
+    margin: 0 auto;
+    background:#fff;
+    border-radius:12px;
+    padding:32px;
+}
+.profile-section {
+    border:1px solid #e5e7eb;
+    border-radius:12px;
+    padding:24px;
+    margin-bottom:24px;
+}
+.skills-list {
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+}
+.skill-badge {
+    background:#eef2ff;
+    color:#1e3a8a;
+    border-radius:999px;
+    padding:6px 12px;
+    font-size:13px;
+}
+.action-btn.warning {
+    background:#fff;
+    color:#b91c1c;
+    border:1px solid #fca5a5;
+    border-radius:6px;
+    padding:10px 16px;
+    cursor:pointer;
+}
+.reason-templates {
+    display:grid;
+    gap:6px;
+    margin-bottom:10px;
+}
+.reason-option {
+    font-size:13px;
+    color:#374151;
+    display:flex;
+    align-items:center;
+    gap:8px;
+}
+.student-photo-preview {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    object-fit: cover;
+    object-position: center top;
+    border: 2px solid #e5e7eb;
+}
+</style>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const sections = document.querySelectorAll('.profile-section');
+    sections.forEach((section) => {
+        const textarea = section.querySelector('textarea[name="reason"]');
+        const checks = section.querySelectorAll('.reason-check');
+        const otherToggle = section.querySelector('.reason-other-toggle');
+        const otherInput = section.querySelector('.reason-other-input');
+        if (!textarea || !checks.length) {
+            return;
+        }
+        const rebuildReason = () => {
+            const selected = [];
+            checks.forEach((check) => {
+                if (check.checked && check.dataset.reason) {
+                    selected.push(check.dataset.reason);
+                }
+            });
+            if (otherToggle && otherToggle.checked && otherInput) {
+                const custom = (otherInput.value || '').trim();
+                if (custom) {
+                    selected.push(custom);
+                }
+            }
+            textarea.value = selected.join('\n');
+        };
+        checks.forEach((check) => check.addEventListener('change', rebuildReason));
+        if (otherInput) {
+            otherInput.addEventListener('input', rebuildReason);
+        }
+        rebuildReason();
+    });
+});
+</script>
+{% endblock %}

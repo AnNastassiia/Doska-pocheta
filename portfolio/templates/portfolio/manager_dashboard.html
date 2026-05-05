@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="dashboard-wrapper">
+    <main class="dashboard-main">
+        <div class="dashboard-content">
+            <h1>Кабинет менеджера</h1>
+            <p style="color:#6b7280;">Здесь вы работаете со студентами, работодателями и модерацией профилей.</p>
+
+            <div class="manager-cards">
+                <div class="manager-card">
+                    <h3>Студенты на модерации</h3>
+                    <p class="manager-metric">{{ pending_students }}</p>
+                    <a href="{% url 'manager_students_pending' %}" class="btn-primary manager-btn">Открыть</a>
+                </div>
+                <div class="manager-card">
+                    <h3>Все студенты</h3>
+                    <p style="color:#6b7280;">Просмотр профилей и снятие с доски почёта.</p>
+                    <a href="{% url 'manager_students_all' %}" class="btn-primary manager-btn">Открыть список</a>
+                </div>
+                <div class="manager-card">
+                    <h3>Работодатели на проверке</h3>
+                    <p class="manager-metric">{{ pending_employers }}</p>
+                    <a href="{% url 'manager_employers_pending' %}" class="btn-primary manager-btn">Открыть</a>
+                </div>
+                <div class="manager-card">
+                    <h3>Все работодатели</h3>
+                    <p style="color:#6b7280;">Включение/отключение доступа к контактам.</p>
+                    <a href="{% url 'manager_employers_all' %}" class="btn-primary manager-btn">Открыть список</a>
+                </div>
+                <div class="manager-card">
+                    <h3>Новые достижения</h3>
+                    <p class="manager-metric">{{ pending_achievements }}</p>
+                    <a href="{% url 'manager_students_pending' %}" class="btn-primary manager-btn">Проверить через студентов</a>
+                </div>
+                <div class="manager-card">
+                    <h3>Создание студента</h3>
+                    <p>Создайте аккаунт, логин и пароль будут отправлены на почту студента.</p>
+                    <a href="{% url 'manager_create_student' %}" class="btn-primary manager-btn">Создать студента</a>
+                </div>
+                {% if can_manage_managers %}
+                <div class="manager-card">
+                    <h3>Менеджеры</h3>
+                    <p>Создайте внутреннего пользователя и назначьте ему роль менеджера.</p>
+                    <a href="{% url 'manager_assign_role' %}" class="btn-primary manager-btn">Назначить менеджера</a>
+                </div>
+                {% endif %}
+            </div>
+
+            <section class="profile-section">
+                <h2>Последние изменения студентов</h2>
+                <ul>
+                    {% for student in recent_students %}
+                        <li>
+                            <strong>{{ student.full_name }}</strong> — {{ student.course }}
+                            {% if student.is_approved %}
+                                <span style="color:#1f7d3d;">(одобрен)</span>
+                            {% else %}
+                                <span style="color:#b91c1c;">(ожидает проверки)</span>
+                            {% endif %}
+                        </li>
+                    {% empty %}
+                        <li>Пока нет данных.</li>
+                    {% endfor %}
+                </ul>
+            </section>
+
+            <section class="profile-section">
+                <h2>Последние работодатели</h2>
+                <ul>
+                    {% for employer in recent_employers %}
+                        <li>
+                            <strong>{{ employer.company_name }}</strong> — {{ employer.contact_person }}
+                            {% if employer.is_approved %}
+                                <span style="color:#1f7d3d;">(доступ одобрен)</span>
+                            {% else %}
+                                <span style="color:#b91c1c;">(ожидает проверки)</span>
+                            {% endif %}
+                        </li>
+                    {% empty %}
+                        <li>Пока нет данных.</li>
+                    {% endfor %}
+                </ul>
+            </section>
+        </div>
+    </main>
+</div>
+
+<style>
+.dashboard-wrapper {
+    padding: 20px;
+    background: #f8fafc;
+    min-height: calc(100vh - 60px);
+}
+.dashboard-main {
+    max-width: 1200px;
+    margin: 0 auto;
+    background:#fff;
+    border-radius:12px;
+    padding:32px;
+}
+.profile-section {
+    border-top: 1px solid #e5e7eb;
+    padding-top: 24px;
+    margin-top: 24px;
+}
+.manager-cards {
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap:16px;
+    margin:24px 0;
+}
+.manager-card {
+    background:#fff;
+    border:1px solid #e5e7eb;
+    border-radius:12px;
+    padding:20px;
+}
+.manager-metric {
+    font-size:32px;
+    font-weight:700;
+    margin:12px 0;
+    color:#0a2540;
+}
+.manager-btn {
+    display:inline-block;
+    width:auto;
+    text-decoration:none;
+}
+</style>
+{% endblock %}

@@ -3,40 +3,25 @@
 <div class="auth-form">
     <h2>Регистрация</h2>
     
-    <!-- Вкладки для выбора типа -->
-    <div class="tabs-container">
-        <button class="tab-button active" data-tab="student">
-            Студент
-        </button>
-        <button class="tab-button" data-tab="employer">
-            Работодатель
-        </button>
-    </div>
-
     <form method="post" action="{% url 'signup' %}" novalidate>
         {% csrf_token %}
         {{ user_form.username }}
-        {% if user_form.errors or student_form.errors or employer_form.errors %}
+        {% if user_form.errors or employer_form.errors %}
             <div class="form-errors">
                 {{ user_form.non_field_errors }}
                 {{ user_form.errors }}
-                {{ student_form.errors }}
                 {{ employer_form.errors }}
             </div>
         {% endif %}
         
-        <!-- Скрытый input для типа пользователя -->
-        <input type="hidden" id="user_type_input" name="user_type" value="student">
+        <!-- Студенты больше не регистрируются сами -->
+        <input type="hidden" name="user_type" value="employer">
         
         <div class="mb-3">{{ user_form.email.label_tag }}{{ user_form.email }}</div>
         <div class="mb-3">{{ user_form.password1.label_tag }}{{ user_form.password1 }}</div>
         <div class="mb-3">{{ user_form.password2.label_tag }}{{ user_form.password2 }}</div>
 
-        <div id="student-fields" style="display:block;">
-            <h4>Данные студента</h4>
-            {{ student_form.as_p }}
-        </div>
-        <div id="employer-fields" style="display:none;">
+        <div>
             <h4>Данные работодателя</h4>
             {{ employer_form.as_p }}
         </div>
@@ -140,74 +125,5 @@ textarea:invalid:not(:focus) {
 }
 </style>
 
-<script>
-function switchTab(tabName) {
-    // Обновляем скрытый input
-    document.getElementById('user_type_input').value = tabName;
-    
-    // Сохраняем выбранный тип в localStorage
-    localStorage.setItem('selected_user_type', tabName);
-    
-    // Показываем/скрываем блоки
-    const studentFields = document.getElementById('student-fields');
-    const employerFields = document.getElementById('employer-fields');
-    
-    studentFields.style.display = tabName === 'student' ? 'block' : 'none';
-    employerFields.style.display = tabName === 'employer' ? 'block' : 'none';
-    
-    // Обновляем активную вкладку
-    const buttons = document.querySelectorAll('.tab-button');
-    buttons.forEach(btn => {
-        if (btn.dataset.tab === tabName) {
-            btn.classList.add('active');
-        } else {
-            btn.classList.remove('active');
-        }
-    });
-    
-    // Управляем атрибутом required и disabled для валидации
-    const studentInputs = studentFields.querySelectorAll('input, select, textarea');
-    const employerInputs = employerFields.querySelectorAll('input, select, textarea');
-    
-    if (tabName === 'student') {
-        studentInputs.forEach(input => {
-            input.removeAttribute('disabled');
-            input.setAttribute('required', 'required');
-        });
-        employerInputs.forEach(input => {
-            input.setAttribute('disabled', 'disabled');
-            input.removeAttribute('required');
-        });
-    } else {
-        studentInputs.forEach(input => {
-            input.setAttribute('disabled', 'disabled');
-            input.removeAttribute('required');
-        });
-        employerInputs.forEach(input => {
-            input.removeAttribute('disabled');
-            input.setAttribute('required', 'required');
-        });
-    }
-}
-
-window.addEventListener('DOMContentLoaded', function() {
-    // Получаем вкладки и добавляем обработчики
-    const tabButtons = document.querySelectorAll('.tab-button');
-    tabButtons.forEach(btn => {
-        btn.addEventListener('click', function() {
-            switchTab(this.dataset.tab);
-        });
-    });
-    
-    // Восстанавливаем выбранную вкладку
-    let savedType = localStorage.getItem('selected_user_type');
-    const initialType = '{{ initial_type }}';
-    
-    if (!savedType) {
-        savedType = initialType || 'student';
-    }
-    
-    switchTab(savedType);
-});
-</script>
+<script></script>
 {% endblock %}

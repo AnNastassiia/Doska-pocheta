@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="auth-form">
+    <h2>{% if edit_mode %}Редактировать вакансию{% else %}Новая вакансия{% endif %}</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">{% if edit_mode %}Сохранить{% else %}Создать{% endif %}</button>
+    </form>
+</div>
+{% endblock %}
+

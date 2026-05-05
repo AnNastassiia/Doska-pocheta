@@ -13,18 +13,120 @@
         <div style="display: flex; gap: 15px;">
             {% if user.is_authenticated %}
                 <span>{{ user.username }}</span>
-                {% if user.is_staff %}
-                    <a href="/admin/" style="color: #fff; text-decoration: none;">Кабинет</a>
+                <a href="{% url 'vacancies_list' %}" style="color:#fff; text-decoration:none;">Вакансии</a>
+                <a href="{% url 'help_guide' %}" style="color:#fff; text-decoration:none;">Руководство</a>
+                <a href="{% url 'notifications' %}" style="color:#fff; text-decoration:none; position:relative;">
+                    Уведомления
+                    {% if notifications_unread_count %}
+                        <span style="position:absolute; top:-6px; right:-10px; background:#ef4444; color:#fff; border-radius:999px; font-size:11px; padding:2px 6px; font-weight:800;">
+                            {{ notifications_unread_count }}
+                        </span>
+                    {% endif %}
+                </a>
+                {% if user.is_staff or user.manager_profile %}
+                    <a href="/manager/dashboard/" style="color: #fff; text-decoration: none;">Кабинет</a>
+                    {% if user.is_staff %}
+                        <a href="/admin/" style="color: #fff; text-decoration: none;">Тех. админка</a>
+                    {% endif %}
                 {% else %}
                     <a href="/dashboard/" style="color: #fff; text-decoration: none;">Кабинет</a>
                 {% endif %}
                 <a href="/logout/" style="color: #fff; text-decoration: none;">Выход</a>
             {% else %}
+                <a href="{% url 'vacancies_list' %}" style="color:#fff; text-decoration:none;">Вакансии</a>
+                <a href="{% url 'help_guide' %}" style="color:#fff; text-decoration:none;">Руководство</a>
                 <a href="/signup/" style="color: #fff; text-decoration: none;">Регистрация</a>
                 <a href="/login/" style="color: #fff; text-decoration: none;">Вход</a>
             {% endif %}
         </div>
     </nav>
     {% block content %}{% endblock %}
+
+    {% if user.is_authenticated and toast_notifications %}
+        {{ toast_notifications|json_script:"toast-data" }}
+        <div id="toast-root" style="position:fixed; right:16px; bottom:16px; display:flex; flex-direction:column; gap:10px; z-index:9999;"></div>
+        <script>
+        (function () {
+            const dataEl = document.getElementById('toast-data');
+            if (!dataEl) return;
+            let items = [];
+            try { items = JSON.parse(dataEl.textContent || '[]'); } catch (e) { items = []; }
+            const root = document.getElementById('toast-root');
+            if (!root || !items.length) return;
+
+            const colors = {
+                info: { bg: '#0a2540', border: '#0a2540' },
+                success: { bg: '#166534', border: '#166534' },
+                warning: { bg: '#92400e', border: '#92400e' },
+                danger: { bg: '#b91c1c', border: '#b91c1c' },
+            };
+
+            function addToast(item) {
+                const c = colors[item.level] || colors.info;
+                const toast = document.createElement('div');
+                toast.style.cssText = `min-width:280px; max-width:360px; color:#fff; background:${c.bg}; border:1px solid ${c.border}; border-radius:12px; padding:12px 14px; box-shadow:0 10px 25px rgba(0,0,0,.18); cursor:pointer;`;
+                const title = item.title ? `<div style="font-weight:800; margin-bottom:4px;">${escapeHtml(item.title)}</div>` : '';
+                toast.innerHTML = `${title}<div style="opacity:.95; white-space:pre-wrap;">${escapeHtml(item.message || '')}</div>`;
+                toast.addEventListener('click', function () {
+                    if (item.url) window.location.href = item.url;
+                    toast.remove();
+                });
+                root.appendChild(toast);
+                setTimeout(() => { toast.remove(); }, 9000);
+            }
+
+            function escapeHtml(str) {
+                return String(str)
+                    .replaceAll('&', '&amp;')
+                    .replaceAll('<', '&lt;')
+                    .replaceAll('>', '&gt;')
+                    .replaceAll('"', '&quot;')
+                    .replaceAll("'", '&#039;');
+            }
+
+            items.forEach(addToast);
+        })();
+        </script>
+    {% endif %}
+
+    {% if user.is_authenticated %}
+    <div id="onboarding-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:9998;">
+        <div style="max-width:640px; margin:8vh auto; background:#fff; border-radius:14px; padding:20px;">
+            <h2 style="margin-top:0;">Добро пожаловать в экосистему выпускника</h2>
+            <p id="onboarding-text" style="color:#374151;">Здесь вы можете работать с ключевыми модулями платформы.</p>
+            <ul style="color:#4b5563; line-height:1.5;">
+                <li>Профиль и приватность в кабинете</li>
+                <li>Вакансии, отклики и запросы контактов</li>
+                <li>Уведомления и e-mail подтверждения</li>
+            </ul>
+            <div style="display:flex; gap:10px; justify-content:flex-end;">
+                <button id="onboarding-close" style="padding:10px 14px; border:1px solid #d1d5db; border-radius:8px; background:#fff; cursor:pointer;">Закрыть</button>
+                <a href="{% url 'help_guide' %}" style="padding:10px 14px; border-radius:8px; background:#0a2540; color:#fff; text-decoration:none;">Открыть руководство</a>
+            </div>
+        </div>
+    </div>
+    <script>
+    (function () {
+        const key = 'onboarding_seen_v2';
+        if (localStorage.getItem(key)) return;
+        const modal = document.getElementById('onboarding-modal');
+        if (!modal) return;
+        modal.style.display = 'block';
+        const closeBtn = document.getElementById('onboarding-close');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', function () {
+                localStorage.setItem(key, '1');
+                modal.style.display = 'none';
+            });
+        }
+        modal.addEventListener('click', function (e) {
+            if (e.target === modal) {
+                localStorage.setItem(key, '1');
+                modal.style.display = 'none';
+            }
+        });
+    })();
+    </script>
+    {% endif %}
 </body>
 </html>
