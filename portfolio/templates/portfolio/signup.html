@@ -1,8 +1,10 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="auth-form">
-    <h2>Регистрация</h2>
-    
+<div class="auth-form auth-form--wide">
+    <div class="auth-form__header">
+        <h2>Регистрация</h2>
+        <p class="auth-form__subtitle">Создайте аккаунт работодателя, чтобы размещать вакансии и управлять откликами.</p>
+    </div>
     <form method="post" action="{% url 'signup' %}" novalidate>
         {% csrf_token %}
         {{ user_form.username }}
@@ -13,117 +15,25 @@
                 {{ employer_form.errors }}
             </div>
         {% endif %}
-        
-        <!-- Студенты больше не регистрируются сами -->
         <input type="hidden" name="user_type" value="employer">
-        
-        <div class="mb-3">{{ user_form.email.label_tag }}{{ user_form.email }}</div>
-        <div class="mb-3">{{ user_form.password1.label_tag }}{{ user_form.password1 }}</div>
-        <div class="mb-3">{{ user_form.password2.label_tag }}{{ user_form.password2 }}</div>
-
-        <div>
-            <h4>Данные работодателя</h4>
+        <div class="form-field">
+            {{ user_form.email.label_tag }}
+            {{ user_form.email }}
+        </div>
+        <div class="form-field">
+            {{ user_form.password1.label_tag }}
+            {{ user_form.password1 }}
+        </div>
+        <div class="form-field">
+            {{ user_form.password2.label_tag }}
+            {{ user_form.password2 }}
+        </div>
+        <div class="section-title">Данные работодателя</div>
+        <div class="form-group">
             {{ employer_form.as_p }}
         </div>
         <button type="submit">Зарегистрироваться</button>
     </form>
+    <p class="auth-form__footer">Уже есть аккаунт? <a href="{% url 'login' %}">Войти</a></p>
 </div>
-
-<style>
-.tabs-container {
-    display: flex;
-    gap: 0px;
-    margin-bottom: 20px;
-    border-bottom: 2px solid #d1d5db;
-}
-
-.tabs-container .tab-button {
-    padding: 12px 20px;
-    border: 1px solid #d1d5db;
-    border-right: none;
-    background-color: #e5e7eb !important;
-    cursor: pointer;
-    font-size: 16px;
-    font-weight: 500;
-    color: #374151;
-    border-bottom: none;
-    transition: background-color 0.3s ease;
-    outline: none;
-}
-
-.tabs-container .tab-button:last-child {
-    border-right: 1px solid #d1d5db;
-}
-
-.tabs-container .tab-button:hover {
-    background-color: #f3f4f6 !important;
-}
-
-.tabs-container .tab-button.active {
-    background-color: #4b5563 !important;
-    color: #ffffff !important;
-    border-color: #4b5563 !important;
-}
-
-.tabs-container .tab-button:not(.active) {
-    background-color: #f3f4f6 !important;
-}
-
-.auth-form button[type="submit"] {
-    background: #0a2540;
-    color: #fff;
-    border: none;
-    border-radius: 5px;
-    padding: 9px 0;
-    font-weight: bold;
-    font-size: 1em;
-    margin-top: 10px;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-
-.auth-form button[type="submit"]:hover {
-    background: #143d6b;
-}
-
-.form-errors {
-    background-color: #fee2e2;
-    border: 2px solid #ef4444;
-    border-radius: 6px;
-    padding: 12px 14px;
-    margin-bottom: 16px;
-    font-size: 13px;
-    color: #7f1d1d;
-}
-
-.form-errors ul {
-    margin: 0;
-    padding-left: 20px;
-}
-
-.form-errors ul li {
-    margin: 4px 0;
-}
-
-.form-errors p {
-    margin: 4px 0;
-}
-
-.auth-form input,
-.auth-form select,
-.auth-form textarea {
-    background-color: #ffffff;
-    color: #111827;
-}
-
-input:invalid:not(:focus),
-select:invalid:not(:focus),
-textarea:invalid:not(:focus) {
-    border-color: #ef4444;
-    background-color: #ffffff;
-    color: #111827;
-}
-</style>
-
-<script></script>
 {% endblock %}

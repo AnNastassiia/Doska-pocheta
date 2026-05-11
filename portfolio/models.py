@@ -101,6 +101,17 @@ class Student(models.Model):
         default=False,
         verbose_name="Согласие на обработку данных"
     )
+    JOB_SEARCH_STATUS_CHOICES = [
+        ('internship', 'Ищу стажировку'),
+        ('job', 'В поиске работы'),
+        ('found', 'Уже нашел работу'),
+    ]
+    job_search_status = models.CharField(
+        max_length=20,
+        choices=JOB_SEARCH_STATUS_CHOICES,
+        default='internship',
+        verbose_name='Статус поиска работы'
+    )
     contact_email = models.EmailField(
         blank=True,
         verbose_name="Контактный email"
@@ -441,6 +452,7 @@ class Application(models.Model):
         verbose_name='Студент'
     )
     message = models.TextField(blank=True, verbose_name='Сопроводительное сообщение')
+    employer_message = models.TextField(blank=True, verbose_name='Сообщение работодателя')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='submitted', verbose_name='Статус')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -455,3 +467,50 @@ class Application(models.Model):
 
     def __str__(self):
         return f'{self.student.full_name} -> {self.vacancy.title}'
+
+
+class Inquiry(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Ожидает ответа'),
+        ('accepted', 'Принято'),
+        ('rejected', 'Отклонено'),
+    ]
+
+    employer = models.ForeignKey(
+        Employer,
+        on_delete=models.CASCADE,
+        related_name='inquiries',
+        verbose_name='Работодатель'
+    )
+    student = models.ForeignKey(
+        Student,
+        on_delete=models.CASCADE,
+        related_name='inquiries',
+        verbose_name='Студент'
+    )
+    vacancy = models.ForeignKey(
+        Vacancy,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name='inquiries',
+        verbose_name='Вакансия'
+    )
+    message = models.TextField(verbose_name='Сообщение работодателя')
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='pending',
+        verbose_name='Статус'
+    )
+    response_message = models.TextField(blank=True, verbose_name='Сообщение студента')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата создания')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='Дата обновления')
+
+    class Meta:
+        verbose_name = 'Приглашение студента'
+        verbose_name_plural = 'Приглашения студентов'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'Запрос от {self.employer.company_name} к {self.student.full_name} ({self.get_status_display()})'

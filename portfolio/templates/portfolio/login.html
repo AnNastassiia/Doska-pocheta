@@ -1,12 +1,29 @@
 {% extends 'base.html' %}
 {% block content %}
 <div class="auth-form">
-    <h2>Вход</h2>
-    <form method="post">
+    <div class="auth-form__header">
+        <h2>Вход</h2>
+        <p class="auth-form__subtitle">Войдите в личный кабинет, чтобы просматривать вакансии и управлять откликами.</p>
+    </div>
+    <form method="post" novalidate>
         {% csrf_token %}
-        {{ form.as_p }}
+        {% if form.non_field_errors %}
+            <div class="form-errors">{{ form.non_field_errors }}</div>
+        {% endif %}
+        <div class="form-field">
+            {{ form.username.label_tag }}
+            {{ form.username }}
+        </div>
+        <div class="form-field">
+            {{ form.password.label_tag }}
+            {{ form.password }}
+        </div>
+        <div class="auth-form__options">
+            <label class="checkbox-label"><input type="checkbox" name="remember" /> Запомнить меня</label>
+            <a href="{% url 'password_reset' %}" class="auth-link">Забыли пароль?</a>
+        </div>
         <button type="submit">Войти</button>
     </form>
-    <p style="margin-top:20px;">Нет аккаунта? <a href="/signup/">Зарегистрироваться</a></p>
+    <p class="auth-form__footer">Нет аккаунта? <a href="{% url 'signup' %}">Зарегистрироваться</a></p>
 </div>
 {% endblock %}

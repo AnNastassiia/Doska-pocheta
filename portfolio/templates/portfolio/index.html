@@ -5,8 +5,8 @@
     <div class="container header-inner">
         <a class="brand" href="/">Академия-ТОП</a>
         <nav class="main-nav">
-            <a href="#students" class="nav-link">Студентам</a>
-            <a href="#employers" class="nav-link">Работодателям</a>
+            <a href="#vacancies" class="nav-link">Вакансии</a>
+            <a href="#students" class="nav-link">Студенты</a>
             {% if user.is_authenticated %}
                 <a href="/dashboard/" class="nav-link">Кабинет</a>
                 <a href="/logout/" class="nav-link">Выход</a>
@@ -25,6 +25,43 @@
         <div class="search-box">
             <span class="search-icon">🔍</span>
             <input type="text" placeholder="Найти разработчика, дизайнера или аналитика..." name="q">
+        </div>
+    </div>
+</section>
+
+<section id="vacancies" class="top-students-section" style="padding-top:10px;">
+    <div class="container">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+            <h2 style="margin:0;">Вакансии от работодателей</h2>
+            <a href="{% url 'vacancies_list' %}" class="btn-outline" style="padding:8px 14px;">Смотреть все вакансии</a>
+        </div>
+        <p style="color:#6b7280; margin-top:8px;">Актуальные предложения (до 7), листайте вправо.</p>
+
+        <div style="display:flex; gap:14px; overflow-x:auto; padding:6px 2px 12px;">
+            {% for vacancy in featured_vacancies %}
+                <div style="min-width:280px; max-width:320px; text-decoration:none; color:inherit;">
+                    <article style="background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:14px; height:100%; display:flex; flex-direction:column; justify-content:space-between;">
+                        <div>
+                            <h3 style="margin:0 0 6px 0; color:#0a2540;">{{ vacancy.title }}</h3>
+                            <p style="margin:0; color:#6b7280; font-size:14px;">
+                                {{ vacancy.employer.company_name }} · {{ vacancy.get_employment_type_display }}
+                            </p>
+                            <p style="margin:8px 0 0 0; color:#374151;">{{ vacancy.description|truncatewords:20 }}</p>
+                        </div>
+                        <a href="{% url 'vacancy_detail' vacancy.id %}" style="display:inline-block; margin-top:16px; text-decoration:none; background:#0a2540; color:#fff; border-radius:8px; padding:10px 12px;">Узнать подробнее</a>
+                    </article>
+                </div>
+            {% empty %}
+                <p style="color:#6b7280;">Пока нет опубликованных вакансий.</p>
+            {% endfor %}
+
+            {% if featured_vacancies %}
+                <a href="{% url 'vacancies_list' %}" style="min-width:220px; text-decoration:none; color:inherit;">
+                    <article style="background:#eff6ff; border:1px dashed #93c5fd; border-radius:12px; padding:14px; height:100%; display:flex; align-items:center; justify-content:center; text-align:center;">
+                        <strong style="color:#1d4ed8;">Показать остальные вакансии →</strong>
+                    </article>
+                </a>
+            {% endif %}
         </div>
     </div>
 </section>
@@ -86,46 +123,12 @@
                     <p style="margin:8px 0 0; color:#6b7280; font-size:13px;">
                         Достижений: {{ student.achievements.all|length }}
                     </p>
-                    <span class="status status-online">Контакты скрыты • запрос через письмо</span>
+                    <span class="status status-online">{{ student.get_job_search_status_display }}</span>
                 </div>
             </a>
             {% empty %}
             <p>Нет студентов по выбранным фильтрам.</p>
             {% endfor %}
-        </div>
-    </div>
-</section>
-
-<section id="vacancies" class="top-students-section" style="padding-top:10px;">
-    <div class="container">
-        <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
-            <h2 style="margin:0;">Вакансии от работодателей</h2>
-            <a href="{% url 'vacancies_list' %}" class="btn-outline" style="padding:8px 14px;">Смотреть все вакансии</a>
-        </div>
-        <p style="color:#6b7280; margin-top:8px;">Актуальные предложения (до 7), листайте вправо.</p>
-
-        <div style="display:flex; gap:14px; overflow-x:auto; padding:6px 2px 12px;">
-            {% for vacancy in featured_vacancies %}
-                <a href="{% url 'vacancy_detail' vacancy.id %}" style="min-width:280px; max-width:320px; text-decoration:none; color:inherit;">
-                    <article style="background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:14px; height:100%;">
-                        <h3 style="margin:0 0 6px 0; color:#0a2540;">{{ vacancy.title }}</h3>
-                        <p style="margin:0; color:#6b7280; font-size:14px;">
-                            {{ vacancy.employer.company_name }} · {{ vacancy.get_employment_type_display }}
-                        </p>
-                        <p style="margin:8px 0 0 0; color:#374151;">{{ vacancy.description|truncatewords:20 }}</p>
-                    </article>
-                </a>
-            {% empty %}
-                <p style="color:#6b7280;">Пока нет опубликованных вакансий.</p>
-            {% endfor %}
-
-            {% if featured_vacancies %}
-                <a href="{% url 'vacancies_list' %}" style="min-width:220px; text-decoration:none; color:inherit;">
-                    <article style="background:#eff6ff; border:1px dashed #93c5fd; border-radius:12px; padding:14px; height:100%; display:flex; align-items:center; justify-content:center; text-align:center;">
-                        <strong style="color:#1d4ed8;">Показать остальные вакансии →</strong>
-                    </article>
-                </a>
-            {% endif %}
         </div>
     </div>
 </section>

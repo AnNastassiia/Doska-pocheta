@@ -3,16 +3,73 @@
 <div style="padding:20px; background:#f8fafc; min-height:calc(100vh - 60px);">
   <div style="max-width:1000px; margin:0 auto; background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:20px;">
     <h1 style="margin-top:0;">Отклики студентов</h1>
+    {% if accepted_contacts %}
+      <div style="border:1px solid #d1fae5; border-radius:10px; padding:14px; background:#ecfdf5; margin-bottom:20px;">
+        <h2 style="margin:0 0 8px 0;">Мои контакты / Взаимный интерес</h2>
+        <p style="margin:0 0 12px 0; color:#166534;">Список студентов, чьи отклики вы одобрили.</p>
+        <div style="display:grid; gap:10px;">
+          {% for app in accepted_contacts %}
+            <div style="padding:10px; border:1px solid #d1fae5; border-radius:10px; background:#ffffff;">
+              <strong>{{ app.student.full_name }}</strong> — вакансия «{{ app.vacancy.title }}»<br>
+              Контакты: {{ app.student.contact_email|default:app.student.user.email }}{% if app.student.phone %} · {{ app.student.phone }}{% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
     <div style="display:grid; gap:10px;">
       {% for app in applications %}
         <div style="border:1px solid #e5e7eb; border-radius:10px; padding:14px;">
           <h3 style="margin:0 0 6px 0;">{{ app.vacancy.title }}</h3>
-          <p style="margin:0;"><strong>Студент:</strong> {{ app.student.full_name }}</p>
+          <p style="margin:0;"><strong>Студент:</strong> <a href="{% url 'student_profile' app.student.id %}" style="color:#0a63c6; text-decoration:none;">{{ app.student.full_name }}</a></p>
+          <p style="margin:4px 0 0;"><strong>Дата отклика:</strong> {{ app.created_at|date:'d.m.Y' }}</p>
           <p style="margin:4px 0 0;"><strong>Статус:</strong> {{ app.get_status_display }}</p>
           {% if app.message %}
-            <p style="margin-top:8px;">{{ app.message }}</p>
+            <p style="margin-top:8px;"><strong>Сообщение студента:</strong> {{ app.message }}</p>
           {% endif %}
-          <a href="{% url 'student_profile' app.student.id %}" style="text-decoration:none; color:#0a63c6;">Открыть профиль студента →</a>
+          {% if app.status == 'accepted' %}
+            <div style="margin-top:10px; padding:12px; border:1px solid #d1fae5; border-radius:10px; background:#ecfdf5;">
+              <p style="margin:0;"><strong>Контакты студента:</strong> {{ app.student.contact_email|default:app.student.user.email }}{% if app.student.phone %} · {{ app.student.phone }}{% endif %}</p>
+              {% if app.employer_message %}
+                <p style="margin:6px 0 0; color:#166534;"><strong>Ваше сообщение:</strong> {{ app.employer_message }}</p>
+              {% endif %}
+            </div>
+          {% elif app.status == 'rejected' %}
+            <div style="margin-top:10px; padding:12px; border:1px solid #fee2e2; border-radius:10px; background:#fef2f2;">
+              <p style="margin:0; color:#b91c1c;"><strong>Отклик отклонен.</strong></p>
+              {% if app.employer_message %}
+                <p style="margin:6px 0 0;">Причина: {{ app.employer_message }}</p>
+              {% endif %}
+            </div>
+          {% else %}
+            <div style="margin-top:10px; padding:12px; border:1px solid #e5e7eb; border-radius:10px; background:#f8fafc;">
+              <p style="margin:0;"><strong>Контакты скрыты</strong></p>
+              <form method="post" action="{% url 'update_application_status' app.id %}" style="margin-top:10px; display:grid; gap:10px;">
+                {% csrf_token %}
+                <label style="display:block; font-size:14px; color:#374151;">
+                  Шаблон ответа работодателя
+                  <select name="message" style="width:100%; padding:8px; border:1px solid #d1d5db; border-radius:8px; margin-top:4px;">
+                    <option value="">Без дополнительного сообщения</option>
+                    {% if app.status != 'rejected' %}
+                      {% for value, label in accept_templates %}
+                        <option value="{{ value }}">{{ label }}</option>
+                      {% endfor %}
+                    {% endif %}
+                    <optgroup label="Причины отказа">
+                      {% for value, label in reject_templates %}
+                        <option value="{{ value }}">{{ label }}</option>
+                      {% endfor %}
+                    </optgroup>
+                  </select>
+                </label>
+                <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                  <button type="submit" name="action" value="accept" style="background:#166534; color:#fff; border:none; border-radius:8px; padding:10px 14px;">Одобрить и обменяться контактами</button>
+                  <button type="submit" name="action" value="reject" style="background:#b91c1c; color:#fff; border:none; border-radius:8px; padding:10px 14px;">Отклонить</button>
+                  <button type="submit" name="action" value="review" style="background:#0a2540; color:#fff; border:none; border-radius:8px; padding:10px 14px;">Отметить как рассматривается</button>
+                </div>
+              </form>
+            </div>
+          {% endif %}
         </div>
       {% empty %}
         <p style="color:#6b7280;">Откликов пока нет.</p>

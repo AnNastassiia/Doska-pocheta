@@ -30,7 +30,8 @@
         <div style="background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:16px;">
           <h3 style="margin:0 0 6px 0;"><a href="{% url 'vacancy_detail' vacancy.id %}" style="text-decoration:none; color:#0a2540;">{{ vacancy.title }}</a></h3>
           <div style="color:#6b7280; font-size:14px;">{{ vacancy.employer.company_name }} · {{ vacancy.get_employment_type_display }} · {{ vacancy.region|default:"Регион не указан" }}</div>
-          <p style="margin:8px 0 0 0;">{{ vacancy.description|truncatewords:35 }}</p>
+          <p style="margin:8px 0 10px 0;">{{ vacancy.description|truncatewords:35 }}</p>
+          <a href="{% url 'vacancy_detail' vacancy.id %}" style="display:inline-block; text-decoration:none; background:#0a2540; color:#fff; border-radius:8px; padding:10px 14px;">Узнать подробнее</a>
         </div>
       {% empty %}
         <p style="color:#6b7280;">Вакансий пока нет.</p>

@@ -29,6 +29,7 @@
                         <a href="{% url 'employer_vacancies' %}" class="btn-primary" style="text-decoration:none;">Мои вакансии</a>
                         <a href="{% url 'vacancy_create' %}" class="btn-primary" style="text-decoration:none;">Новая вакансия</a>
                         <a href="{% url 'employer_applications' %}" class="btn-primary" style="text-decoration:none;">Отклики студентов</a>
+                        <a href="{% url 'employer_inquiries' %}" class="btn-primary" style="text-decoration:none;">Приглашения студентам</a>
                     </div>
                 </section>
             {% endif %}
@@ -120,6 +121,13 @@
                         </strong>
                     </p>
 
+                    <h3>Статус поиска работы</h3>
+                    <p>
+                        {{ dashboard_form.job_search_status.label_tag }}<br>
+                        {{ dashboard_form.job_search_status }}
+                        {% if dashboard_form.job_search_status.errors %}<span class="field-error">{{ dashboard_form.job_search_status.errors }}</span>{% endif %}
+                    </p>
+
                     <button type="submit" class="btn-primary">Сохранить изменения профиля</button>
                 </form>
             </section>
@@ -133,6 +141,7 @@
                         <a href="{% url 'vacancies_list' %}" class="btn-add-project" style="background:#0a2540; color:#fff;">Смотреть вакансии</a>
                         <a href="{% url 'student_applications' %}" class="btn-add-project" style="background:#166534; color:#fff;">Мои отклики</a>
                         <a href="{% url 'student_contact_requests' %}" class="btn-add-project" style="background:#92400e; color:#fff;">Запросы контакта</a>
+                        <a href="{% url 'student_inquiries' %}" class="btn-add-project" style="background:#0f766e; color:#fff;">Приглашения работодателей</a>
                     </div>
                 </div>
 

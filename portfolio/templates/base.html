@@ -6,41 +6,188 @@
     <title>Доска почёта Академии-ТОП</title>
     <link rel="stylesheet" href="/static/style.css">
     <link rel="icon" type="image/png" href="/static/logo.png">
+    <style>
+        .app-shell {
+            display: grid;
+            grid-template-columns: 260px 1fr;
+            min-height: 100vh;
+            background: #f3eef4;
+        }
+        .app-sidebar {
+            background: #f7f3f8;
+            border-right: 1px solid #e7e0ea;
+            padding: 18px 14px;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            box-sizing: border-box;
+        }
+        .app-brand {
+            font-weight: 800;
+            color: #3a3142;
+            margin: 0 0 14px 6px;
+            letter-spacing: .2px;
+        }
+        .user-card {
+            background: #fff;
+            border: 1px solid #ebe5ef;
+            border-radius: 14px;
+            padding: 12px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .user-card img {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #ece5f0;
+        }
+        .user-card .name {
+            font-weight: 700;
+            color: #332a39;
+            font-size: 14px;
+            margin: 0;
+        }
+        .user-card .role {
+            color: #7f7288;
+            font-size: 12px;
+            margin: 2px 0 0 0;
+        }
+        .sidebar-nav {
+            display: grid;
+            gap: 6px;
+        }
+        .sidebar-link {
+            text-decoration: none;
+            color: #4b3f54;
+            padding: 10px 12px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .sidebar-link:hover {
+            background: #ebe4ef;
+        }
+        .app-main {
+            padding: 18px;
+            box-sizing: border-box;
+        }
+        .topbar {
+            height: 54px;
+            background: #fff;
+            border: 1px solid #ebe5ef;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding: 0 14px;
+            margin-bottom: 12px;
+        }
+        .notif-icon-btn {
+            position: relative;
+            text-decoration: none;
+            color: #4b3f54;
+            font-size: 20px;
+            line-height: 1;
+        }
+        .notif-badge {
+            position: absolute;
+            top: -6px;
+            right: -8px;
+            background: #ef4444;
+            color: #fff;
+            border-radius: 999px;
+            font-size: 10px;
+            padding: 2px 6px;
+            font-weight: 800;
+        }
+        .public-topnav {
+            background: #0a2540;
+            color: #fff;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .public-topnav a {
+            color: #fff;
+            text-decoration: none;
+        }
+        @media (max-width: 900px) {
+            .app-shell {
+                grid-template-columns: 1fr;
+            }
+            .app-sidebar {
+                position: static;
+                height: auto;
+            }
+        }
+    </style>
 </head>
 <body>
-    <nav style="background: #0a2540; color: #fff; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center;">
-        <a href="/" style="color: #fff; text-decoration: none; font-weight: bold; font-size: 18px;">Академия-ТОП</a>
-        <div style="display: flex; gap: 15px;">
-            {% if user.is_authenticated %}
-                <span>{{ user.username }}</span>
-                <a href="{% url 'vacancies_list' %}" style="color:#fff; text-decoration:none;">Вакансии</a>
-                <a href="{% url 'help_guide' %}" style="color:#fff; text-decoration:none;">Руководство</a>
-                <a href="{% url 'notifications' %}" style="color:#fff; text-decoration:none; position:relative;">
-                    Уведомления
-                    {% if notifications_unread_count %}
-                        <span style="position:absolute; top:-6px; right:-10px; background:#ef4444; color:#fff; border-radius:999px; font-size:11px; padding:2px 6px; font-weight:800;">
-                            {{ notifications_unread_count }}
-                        </span>
+    {% if user.is_authenticated %}
+        <div class="app-shell">
+            <aside class="app-sidebar">
+                <div class="app-brand">Doska Ecosystem</div>
+                <div class="user-card">
+                    <img src="/static/default-avatar.svg" alt="Аватар">
+                    <div>
+                        <p class="name">{{ user.username }}</p>
+                        <p class="role">
+                            {% if user.is_staff %}
+                                Менеджер / Админ
+                            {% elif user.employer %}
+                                Работодатель
+                            {% else %}
+                                Студент
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                <nav class="sidebar-nav">
+                    <a class="sidebar-link" href="/">Главная</a>
+                    {% if user.is_staff or user.manager_profile %}
+                        <a class="sidebar-link" href="/manager/dashboard/">Кабинет менеджера</a>
+                        <a class="sidebar-link" href="{% url 'manager_students_all' %}">Студенты</a>
+                        <a class="sidebar-link" href="{% url 'manager_employers_all' %}">Работодатели</a>
+                    {% else %}
+                        <a class="sidebar-link" href="/dashboard/">Мой кабинет</a>
                     {% endif %}
-                </a>
-                {% if user.is_staff or user.manager_profile %}
-                    <a href="/manager/dashboard/" style="color: #fff; text-decoration: none;">Кабинет</a>
-                    {% if user.is_staff %}
-                        <a href="/admin/" style="color: #fff; text-decoration: none;">Тех. админка</a>
-                    {% endif %}
-                {% else %}
-                    <a href="/dashboard/" style="color: #fff; text-decoration: none;">Кабинет</a>
-                {% endif %}
-                <a href="/logout/" style="color: #fff; text-decoration: none;">Выход</a>
-            {% else %}
-                <a href="{% url 'vacancies_list' %}" style="color:#fff; text-decoration:none;">Вакансии</a>
-                <a href="{% url 'help_guide' %}" style="color:#fff; text-decoration:none;">Руководство</a>
-                <a href="/signup/" style="color: #fff; text-decoration: none;">Регистрация</a>
-                <a href="/login/" style="color: #fff; text-decoration: none;">Вход</a>
-            {% endif %}
-        </div>
-    </nav>
-    {% block content %}{% endblock %}
+                    <a class="sidebar-link" href="{% url 'vacancies_list' %}">Вакансии</a>
+                    <a class="sidebar-link" href="{% url 'notifications' %}">Уведомления</a>
+                    <a class="sidebar-link" href="{% url 'help_guide' %}">Руководство</a>
+                    <a class="sidebar-link" href="/logout/">Выход</a>
+                </nav>
+            </aside>
+            <main class="app-main">
+                <div class="topbar">
+                    <a href="{% url 'notifications' %}" class="notif-icon-btn" title="Уведомления">
+                        🔔
+                        {% if notifications_unread_count %}
+                            <span class="notif-badge">{{ notifications_unread_count }}</span>
+                        {% endif %}
+                    </a>
+                </div>
+        {% else %}
+        <nav class="public-topnav">
+            <a href="/" style="font-weight:bold; font-size:18px;">Академия-ТОП</a>
+            <div style="display:flex; gap:15px;">
+                <a href="{% url 'vacancies_list' %}">Вакансии</a>
+                <a href="{% url 'help_guide' %}">Руководство</a>
+                <a href="/signup/">Регистрация</a>
+                <a href="/login/">Вход</a>
+            </div>
+        </nav>
+        <main class="app-main">
+        {% endif %}
+            {% block content %}{% endblock %}
+        </main>
+        {% if user.is_authenticated %}
+            </div>
+        {% endif %}
 
     {% if user.is_authenticated and toast_notifications %}
         {{ toast_notifications|json_script:"toast-data" }}

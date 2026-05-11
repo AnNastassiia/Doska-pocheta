@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block content %}
+<div style="padding:20px; background:#f8fafc; min-height:calc(100vh - 60px);">
+  <div style="max-width:700px; margin:0 auto; background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:24px;">
+    <h1 style="margin-top:0;">Предложить вакансию</h1>
+    <p>Отправьте предложение студенту о вакансии. Вы можете привязать предложение к одной из своих опубликованных вакансий или просто написать сообщение.</p>
+    <form method="post" style="display:grid; gap:16px; margin-top:20px;">
+      {% csrf_token %}
+      <label>
+        <span style="font-weight:600;">Вакансия (необязательно)</span><br>
+        {{ form.vacancy }}
+      </label>
+      <label>
+        <span style="font-weight:600;">Сообщение работодателя</span><br>
+        {{ form.message }}
+      </label>
+      {% if form.non_field_errors %}
+        <div style="color:#b91c1c;">{{ form.non_field_errors }}</div>
+      {% endif %}
+      <button type="submit" class="btn-primary" style="width:fit-content;">Отправить приглашение</button>
+      <a href="{% url 'student_profile' student.id %}" class="btn-secondary" style="display:inline-block; margin-top:8px;">Вернуться к профилю студента</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

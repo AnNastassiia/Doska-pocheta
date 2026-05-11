@@ -3,11 +3,21 @@
 <div class="auth-form">
     <h2>Отклик на вакансию: {{ vacancy.title }}</h2>
     <p style="color:#6b7280;">{{ vacancy.employer.company_name }}</p>
-    <form method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">Отправить отклик</button>
-    </form>
+    {% if error %}
+        <div style="margin:16px 0; padding:14px; border:1px solid #fca5a5; border-radius:10px; background:#fff1f2; color:#991b1b;">
+            {{ error }}
+        </div>
+        {% if not user.is_authenticated %}
+            <a href="{% url 'login' %}" style="display:inline-block; margin-top:10px; text-decoration:none; background:#0a2540; color:#fff; border-radius:8px; padding:10px 14px;">Войти</a>
+            <a href="{% url 'signup' %}" style="display:inline-block; margin-top:10px; text-decoration:none; background:#fff; color:#0a2540; border:1px solid #0a2540; border-radius:8px; padding:10px 14px; margin-left:8px;">Регистрация</a>
+        {% endif %}
+    {% else %}
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit">Отправить отклик</button>
+        </form>
+    {% endif %}
 </div>
 {% endblock %}
 

@@ -36,7 +36,7 @@
                     {% endif %}
                 </p>
                 <span class="status-badge">
-                    Контакты скрыты. Связь — через запрос работодателя
+                    Статус поиска: {{ student.get_job_search_status_display }}
                 </span>
             </div>
         </div>
@@ -70,32 +70,28 @@
                     </div>
                 </section>
 
-                <!-- Портфолио -->
-                <section class="profile-section portfolio-section">
-                    <h2>Портфолио проектов</h2>
+                <section class="profile-section achievements-section">
+                    <h2>Достижения</h2>
                     <div class="projects-grid">
                         {% for achievement in achievements %}
                             <div class="project-card">
                                 <div class="project-info">
                                     <h3>{{ achievement.title }}</h3>
-                                    <p>{{ achievement.description|truncatewords:30 }}</p>
+                                    <p>{{ achievement.description|truncatewords:40 }}</p>
                                     <div class="project-tags">
                                         <span class="tag">{{ achievement.get_achievement_type_display }}</span>
                                     </div>
-                                    <div class="project-links" style="display:flex; gap:8px; flex-wrap:wrap;">
-                                        <a href="{{ achievement.link }}" target="_blank" class="link-btn" rel="noopener">Открыть ссылку →</a>
-                                    </div>
+                                    {% if achievement.link %}
+                                        <div class="project-links" style="display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;">
+                                            <a href="{{ achievement.link }}" target="_blank" class="link-btn" rel="noopener">Открыть ссылку →</a>
+                                        </div>
+                                    {% endif %}
                                 </div>
                             </div>
                         {% empty %}
-                            <p>Проекты не добавлены</p>
+                            <p>Достижения не добавлены.</p>
                         {% endfor %}
                     </div>
-                </section>
-
-                <section class="profile-section achievements-section">
-                    <h2>Достижения и Сертификаты</h2>
-                    <p style="color:#6b7280;">Подтвержденные проекты и достижения отображаются в разделе «Портфолио проектов» выше.</p>
                 </section>
             </div>
 
@@ -132,6 +128,7 @@
                                 <textarea name="message" rows="3" placeholder="Комментарий к запросу (необязательно)" style="width:100%; border:1px solid #d1d5db; border-radius:8px; padding:8px; margin-bottom:8px;"></textarea>
                                 <button type="submit" class="btn-primary" style="display:block; width:100%; text-align:center;">Отправить запрос на связь</button>
                             </form>
+                            <a href="{% url 'create_inquiry' student.id %}" class="btn-secondary" style="display:block; text-align:center; margin-top:12px;">Предложить вакансию</a>
                         {% elif is_employer_user and is_employer_approved and not is_student_adult %}
                             <p style="color: #dc2626;">
                                 Связаться со студентом пока нельзя: студенту еще нет 18 лет.

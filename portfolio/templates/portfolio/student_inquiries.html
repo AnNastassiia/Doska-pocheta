@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block content %}
+<div style="padding:20px; background:#f8fafc; min-height:calc(100vh - 60px);">
+  <div style="max-width:1000px; margin:0 auto; background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:24px;">
+    <h1 style="margin-top:0;">Входящие предложения</h1>
+    {% if inquiries %}
+      <div style="display:grid; gap:18px; margin-top:20px;">
+        {% for inquiry in inquiries %}
+          <div style="border:1px solid #e5e7eb; border-radius:12px; padding:18px; background:#ffffff;">
+            <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px; align-items:flex-start;">
+              <div>
+                <h2 style="margin:0 0 8px 0;">{{ inquiry.employer.company_name }}</h2>
+                <p style="margin:0; color:#475569;">Вакансия: {{ inquiry.vacancy.title if inquiry.vacancy else 'Не указана' }}</p>
+              </div>
+              <div style="text-align:right; color:#374151; font-size:14px;">
+                {{ inquiry.created_at|date:'d.m.Y H:i' }}<br>
+                <strong>{{ inquiry.get_status_display }}</strong>
+              </div>
+            </div>
+            <p style="margin:12px 0 0 0; color:#334155;">{{ inquiry.message|linebreaksbr }}</p>
+            {% if inquiry.status == 'pending' %}
+              <form method="post" action="{% url 'update_inquiry_status' inquiry.id %}" style="margin-top:16px; display:grid; gap:10px;">
+                {% csrf_token %}
+                <label style="font-weight:600;">Комментарий для работодателя (необязательно)</label>
+                <textarea name="response_message" rows="3" style="width:100%; border:1px solid #d1d5db; border-radius:8px; padding:10px;"></textarea>
+                <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                  <button type="submit" name="action" value="accept" class="btn-primary">Принять приглашение</button>
+                  <button type="submit" name="action" value="reject" class="btn-secondary" style="background:#ef4444; color:#fff;">Отклонить</button>
+                </div>
+              </form>
+            {% else %}
+              <div style="margin-top:16px; padding:14px; border-radius:10px; background:#f8fafc; border:1px solid #e2e8f0;">
+                <p style="margin:0;"><strong>Ответ студента:</strong> {{ inquiry.response_message|default:'Без комментариев' }}</p>
+              </div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p style="color:#6b7280;">У вас пока нет приглашений от работодателей.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

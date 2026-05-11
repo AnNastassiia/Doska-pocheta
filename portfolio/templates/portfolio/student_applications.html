@@ -4,12 +4,42 @@
   <div style="max-width:1000px; margin:0 auto; background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:20px;">
     <h1 style="margin-top:0;">Мои отклики</h1>
     <div style="display:grid; gap:10px;">
+      {% if accepted_contacts|length > 0 %}
+        <div style="border:1px solid #d1fae5; border-radius:10px; padding:14px; background:#ecfdf5;">
+          <h2 style="margin-top:0;">Мои контакты / Взаимный интерес</h2>
+          <p style="margin:0 0 12px 0; color:#166534;">Работодатели, которые одобрили ваши отклики. Здесь доступны их контакты.</p>
+          {% for app in applications %}
+            {% if app.status == 'accepted' %}
+              <div style="margin-bottom:12px; padding:10px; border:1px solid #d1fae5; border-radius:10px; background:#ffffff;">
+                <strong>{{ app.vacancy.employer.company_name }}</strong> – вакансия «{{ app.vacancy.title }}»<br>
+                Контакты работодателя: {{ app.vacancy.employer.user.email }} · {{ app.vacancy.employer.contact_person }}
+                {% if app.employer_message %}<p style="margin:8px 0 0 0;">Сообщение работодателя: {{ app.employer_message }}</p>{% endif %}
+              </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      {% endif %}
       {% for app in applications %}
         <div style="border:1px solid #e5e7eb; border-radius:10px; padding:14px;">
           <h3 style="margin:0 0 6px 0;">{{ app.vacancy.title }}</h3>
           <div style="color:#6b7280;">{{ app.vacancy.employer.company_name }} · {{ app.get_status_display }}</div>
           {% if app.message %}
-            <p style="margin-top:8px;">{{ app.message }}</p>
+            <p style="margin-top:8px;"><strong>Ваше сообщение:</strong> {{ app.message }}</p>
+          {% endif %}
+          {% if app.status == 'accepted' %}
+            <div style="margin-top:10px; padding:12px; border:1px solid #d1fae5; border-radius:10px; background:#ecfdf5;">
+              <p style="margin:0;"><strong>Контакты работодателя:</strong> {{ app.vacancy.employer.user.email }} · {{ app.vacancy.employer.contact_person }}</p>
+              {% if app.employer_message %}
+                <p style="margin:6px 0 0 0; color:#166534;">Сообщение работодателя: {{ app.employer_message }}</p>
+              {% endif %}
+            </div>
+          {% elif app.status == 'rejected' %}
+            <div style="margin-top:10px; padding:12px; border:1px solid #fee2e2; border-radius:10px; background:#fef2f2;">
+              <p style="margin:0; color:#b91c1c;"><strong>Отклик отклонен</strong></p>
+              {% if app.employer_message %}
+                <p style="margin:6px 0 0 0;">Причина отказа: {{ app.employer_message }}</p>
+              {% endif %}
+            </div>
           {% endif %}
           <a href="{% url 'vacancy_detail' app.vacancy.id %}" style="text-decoration:none; color:#0a63c6;">К вакансии →</a>
         </div>

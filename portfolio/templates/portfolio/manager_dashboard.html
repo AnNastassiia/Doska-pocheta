@@ -28,11 +28,6 @@
                     <a href="{% url 'manager_employers_all' %}" class="btn-primary manager-btn">Открыть список</a>
                 </div>
                 <div class="manager-card">
-                    <h3>Новые достижения</h3>
-                    <p class="manager-metric">{{ pending_achievements }}</p>
-                    <a href="{% url 'manager_students_pending' %}" class="btn-primary manager-btn">Проверить через студентов</a>
-                </div>
-                <div class="manager-card">
                     <h3>Создание студента</h3>
                     <p>Создайте аккаунт, логин и пароль будут отправлены на почту студента.</p>
                     <a href="{% url 'manager_create_student' %}" class="btn-primary manager-btn">Создать студента</a>
