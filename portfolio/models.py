@@ -65,9 +65,10 @@ class Student(models.Model):
         blank=True,
         verbose_name="Номер студенческого билета"
     )
-    course = models.CharField(
-        max_length=100,
-        verbose_name="Группа / Специальность"
+    specialty = models.CharField(
+        max_length=200,
+        blank=True,
+        verbose_name="Специальность обучения",
     )
     social_link = models.URLField(
         blank=True,
@@ -96,10 +97,30 @@ class Student(models.Model):
         null=True,
         verbose_name="Фотография"
     )
-    # ВАЖНО для несовершеннолетних!
     data_processing_consent = models.BooleanField(
         default=False,
-        verbose_name="Согласие на обработку данных"
+        verbose_name="Согласие на обработку данных (подтверждено файлом)",
+    )
+    data_processing_consent_file = models.FileField(
+        upload_to='students/consents/',
+        blank=True,
+        null=True,
+        verbose_name='Подписанное согласие на обработку данных',
+    )
+    parent_consent_file = models.FileField(
+        upload_to='students/consents/parent/',
+        blank=True,
+        null=True,
+        verbose_name='Согласие законного представителя',
+    )
+    parent_phone = models.CharField(
+        max_length=50,
+        blank=True,
+        verbose_name='Телефон родителя (законного представителя)',
+    )
+    parent_email = models.EmailField(
+        blank=True,
+        verbose_name='Электронная почта родителя (законного представителя)',
     )
     JOB_SEARCH_STATUS_CHOICES = [
         ('internship', 'Ищу стажировку'),
@@ -158,6 +179,18 @@ class Student(models.Model):
         default=False,
         verbose_name="Режим инкогнито (скрыть личность)"
     )
+    receive_vacancy_notifications = models.BooleanField(
+        default=True,
+        verbose_name="Получать уведомления о новых вакансиях"
+    )
+    manager = models.ForeignKey(
+        'ManagerProfile',
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name='students',
+        verbose_name="Менеджер"
+    )
     created_at = models.DateTimeField(
         auto_now_add=True,
         verbose_name="Дата создания"
@@ -180,8 +213,24 @@ class Student(models.Model):
             years -= 1
         return years >= 18
 
+    @property
+    def is_under_18(self):
+        """True, если участнику меньше 18 лет (по дате рождения)."""
+        if not self.birth_date:
+            return False
+        return not self.is_adult
+
+    @property
+    def has_data_processing_consent_file(self):
+        return bool(self.data_processing_consent_file)
+
+    @property
+    def has_parent_consent_file(self):
+        return bool(self.parent_consent_file)
+
     def __str__(self):
-        return f"{self.full_name} ({self.course})"
+        specialty_label = self.specialty or "Специальность не указана"
+        return f"{self.full_name} ({specialty_label})"
     class Meta:
         verbose_name = "Студент"
         verbose_name_plural = "Студенты"
@@ -275,12 +324,34 @@ class Achievement(models.Model):
 
 
 class ContactRequest(models.Model):
+    """
+    Запрос работодателя на получение контактов студента через менеджера.
+    Менеджер обрабатывает этот запрос и может одобрить или отклонить.
+    """
     STATUS_CHOICES = [
-        ('pending_student', 'Ожидает решения студента'),
-        ('approved_by_student', 'Одобрен студентом'),
-        ('rejected_by_student', 'Отклонен студентом'),
+        ('pending_manager', 'Ожидает решения менеджера'),
+        ('approved_by_manager', 'Одобрен менеджером'),
+        ('rejected_by_manager', 'Отклонен менеджером'),
         ('expired', 'Истек'),
     ]
+    LEGACY_STATUS_ALIASES = {
+        'pending_student': 'pending_manager',
+        'approved_by_student': 'approved_by_manager',
+        'rejected_by_student': 'rejected_by_manager',
+    }
+    STATUS_FILTER_GROUPS = {
+        'pending_manager': ('pending_manager', 'pending_student'),
+        'approved_by_manager': ('approved_by_manager', 'approved_by_student'),
+        'rejected_by_manager': ('rejected_by_manager', 'rejected_by_student'),
+        'expired': ('expired',),
+    }
+    STATUS_DISPLAY_LABELS = {
+        **dict(STATUS_CHOICES),
+        'pending_student': 'Ожидает решения менеджера',
+        'approved_by_student': 'Одобрен менеджером',
+        'rejected_by_student': 'Отклонен менеджером',
+    }
+    APPROVED_STATUSES = ('approved_by_manager', 'approved_by_student')
 
     employer = models.ForeignKey(
         'Employer', on_delete=models.CASCADE, related_name='contact_requests', verbose_name='Работодатель'
@@ -288,16 +359,24 @@ class ContactRequest(models.Model):
     student = models.ForeignKey(
         Student, on_delete=models.CASCADE, related_name='contact_requests', verbose_name='Студент'
     )
+    manager = models.ForeignKey(
+        ManagerProfile, 
+        on_delete=models.SET_NULL, 
+        blank=True, 
+        null=True,
+        related_name='contact_requests',
+        verbose_name='Менеджер'
+    )
     status = models.CharField(
         max_length=30,
         choices=STATUS_CHOICES,
-        default='pending_student',
+        default='pending_manager',
         verbose_name='Статус'
     )
     employer_message = models.TextField(blank=True, verbose_name='Комментарий работодателя')
-    student_response_message = models.TextField(blank=True, verbose_name='Ответ студента')
+    manager_response_message = models.TextField(blank=True, verbose_name='Ответ менеджера')
     requested_at = models.DateTimeField(default=timezone.now, verbose_name='Дата запроса')
-    responded_at = models.DateTimeField(blank=True, null=True, verbose_name='Дата ответа студента')
+    manager_responded_at = models.DateTimeField(blank=True, null=True, verbose_name='Дата ответа менеджера')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата создания')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='Дата обновления')
 
@@ -308,17 +387,27 @@ class ContactRequest(models.Model):
         constraints = [
             models.UniqueConstraint(fields=['employer', 'student'], name='unique_contact_request_per_pair')
         ]
+    
+    @property
+    def normalized_status(self):
+        return self.LEGACY_STATUS_ALIASES.get(self.status, self.status)
+
+    def get_effective_status_display(self):
+        return self.STATUS_DISPLAY_LABELS.get(self.status, self.status)
+
+    @classmethod
+    def filter_by_status(cls, queryset, status_key):
+        if not status_key:
+            return queryset
+        statuses = cls.STATUS_FILTER_GROUPS.get(status_key, (status_key,))
+        return queryset.filter(status__in=statuses)
+
+    def __str__(self):
+        return f'{self.employer.company_name} → {self.student.full_name} ({self.get_effective_status_display()})'
 
 
 class Employer(models.Model):
     """Модель для работодателей"""
-    EMPLOYMENT_SECTORS = [
-        ('it', 'IT'),
-        ('design', 'Дизайн'),
-        ('marketing', 'Маркетинг'),
-        ('other', 'Другое'),
-    ]
-
     user = models.OneToOneField(
         User,
         on_delete=models.CASCADE,
@@ -329,8 +418,7 @@ class Employer(models.Model):
         verbose_name="Название организации"
     )
     sector = models.CharField(
-        max_length=50,
-        choices=EMPLOYMENT_SECTORS,
+        max_length=255,
         verbose_name="Сфера деятельности"
     )
     website = models.URLField(
@@ -340,6 +428,11 @@ class Employer(models.Model):
     contact_person = models.CharField(
         max_length=200,
         verbose_name="Контактное лицо"
+    )
+    phone = models.CharField(
+        max_length=50,
+        default='',
+        verbose_name="Контактный телефон"
     )
     registration_purpose = models.TextField(
         blank=True,
@@ -415,10 +508,18 @@ class Vacancy(models.Model):
     description = models.TextField(verbose_name='Описание')
     requirements = models.TextField(blank=True, verbose_name='Требования')
     region = models.CharField(max_length=150, blank=True, verbose_name='Регион')
-    tech_stack = models.CharField(max_length=255, blank=True, verbose_name='Стек технологий')
     employment_type = models.CharField(max_length=20, choices=EMPLOYMENT_TYPES, default='internship', verbose_name='Формат')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft', verbose_name='Статус')
     is_public = models.BooleanField(default=True, verbose_name='Публичная')
+    target_specialties = models.TextField(
+        blank=True,
+        verbose_name='Целевые специальности',
+        help_text='Через запятую. Уведомления получат участники с совпадающей специальностью обучения.',
+    )
+    send_notifications = models.BooleanField(
+        default=False,
+        verbose_name='Отправить уведомления участникам с выбранными специальностями',
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -429,6 +530,11 @@ class Vacancy(models.Model):
 
     def __str__(self):
         return f'{self.title} ({self.employer.company_name})'
+
+    def target_specialties_list(self):
+        if not self.target_specialties:
+            return []
+        return [item.strip() for item in self.target_specialties.split(',') if item.strip()]
 
 
 class Application(models.Model):

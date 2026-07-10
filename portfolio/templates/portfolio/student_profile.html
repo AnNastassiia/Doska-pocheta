@@ -32,7 +32,7 @@
                     {% if student.is_incognito and not is_own_profile %}
                         Группа скрыта
                     {% else %}
-                        {{ student.course }}
+                        {{ student.group }}
                     {% endif %}
                 </p>
                 <span class="status-badge">
@@ -116,18 +116,20 @@
                     {% elif user.is_authenticated %}
                         <!-- Пользователь аутентифицирован, но не работодатель или профиль не одобрен -->
                         {% if is_employer_user and is_employer_approved and is_student_adult %}
-                            {% if contact_request_status == 'approved_by_student' %}
-                                <p style="color:#166534;"><strong>Запрос одобрен студентом. Контакты раскрыты.</strong></p>
-                            {% elif contact_request_status == 'pending_student' %}
-                                <p style="color:#1d4ed8;"><strong>Запрос уже отправлен. Ожидайте решения студента.</strong></p>
-                            {% elif contact_request_status == 'rejected_by_student' %}
-                                <p style="color:#b91c1c;"><strong>Студент отклонил предыдущий запрос. Можно отправить новый.</strong></p>
+                            {% if contact_request_status == 'approved_by_manager' or contact_request_status == 'approved_by_student' %}
+                                <p style="color:#166534;"><strong>Запрос одобрен менеджером. Контакты раскрыты.</strong></p>
+                            {% elif contact_request_status == 'pending_manager' or contact_request_status == 'pending_student' %}
+                                <p style="color:#1d4ed8;"><strong>Запрос уже отправлен. Ожидайте решения менеджера.</strong></p>
+                            {% elif contact_request_status == 'rejected_by_manager' or contact_request_status == 'rejected_by_student' %}
+                                <p style="color:#b91c1c;"><strong>Менеджер отклонил предыдущий запрос. Можно отправить новый.</strong></p>
                             {% endif %}
-                            <form method="post" action="{% url 'request_contact' student.id %}" style="margin-top:10px;">
-                                {% csrf_token %}
-                                <textarea name="message" rows="3" placeholder="Комментарий к запросу (необязательно)" style="width:100%; border:1px solid #d1d5db; border-radius:8px; padding:8px; margin-bottom:8px;"></textarea>
-                                <button type="submit" class="btn-primary" style="display:block; width:100%; text-align:center;">Отправить запрос на связь</button>
-                            </form>
+                            {% if contact_request_status != 'approved_by_manager' and contact_request_status != 'approved_by_student' %}
+                                <form method="post" action="{% url 'request_contact' student.id %}" style="margin-top:10px;">
+                                    {% csrf_token %}
+                                    <textarea name="message" rows="3" placeholder="Комментарий к запросу (необязательно)" style="width:100%; border:1px solid #d1d5db; border-radius:8px; padding:8px; margin-bottom:8px;"></textarea>
+                                    <button type="submit" class="btn-primary" style="display:block; width:100%; text-align:center;">Отправить запрос на связь</button>
+                                </form>
+                            {% endif %}
                             <a href="{% url 'create_inquiry' student.id %}" class="btn-secondary" style="display:block; text-align:center; margin-top:12px;">Предложить вакансию</a>
                         {% elif is_employer_user and is_employer_approved and not is_student_adult %}
                             <p style="color: #dc2626;">

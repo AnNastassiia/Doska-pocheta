@@ -3,7 +3,7 @@
 <div class="auth-form">
     <h2>Создание студента</h2>
     <p style="margin-top:-6px; color:#374151;">
-        Одна форма создаёт аккаунт студента. Менеджер заполняет базовые данные, студент потом видит их, но не может изменить.
+        Одна форма создаёт аккаунт участника (школьник или студент). Менеджер заполняет базовые данные, участник видит их, но не может изменить.
     </p>
 
     {% if email_sent and created_user %}
@@ -31,16 +31,47 @@
         {% endif %}
         <div class="mb-3">{{ form.email.label_tag }}{{ form.email }}</div>
         <div class="mb-3">{{ form.full_name.label_tag }}{{ form.full_name }}</div>
-        <div class="mb-3">{{ form.course.label_tag }}{{ form.course }}</div>
+        <div class="mb-3">{{ form.specialty.label_tag }}{{ form.specialty }}</div>
         <div class="mb-3">{{ form.birth_date.label_tag }}{{ form.birth_date }}</div>
+        <div id="parent-fields" style="display:none; padding:12px; background:#fffbeb; border:1px solid #fcd34d; border-radius:8px; margin-bottom:12px;">
+            <p style="margin:0 0 10px 0; font-size:13px; color:#92400e;">Участнику меньше 18 лет — укажите контакты законного представителя.</p>
+            <div class="mb-3">{{ form.parent_phone.label_tag }}{{ form.parent_phone }}</div>
+            <div class="mb-3">{{ form.parent_email.label_tag }}{{ form.parent_email }}</div>
+        </div>
         <p style="font-size:12px; color:#6b7280; margin-top:0;">
-            Эти поля относятся к manager-owned данным: ФИО, группа, дата рождения и логин/e-mail.
+            Эти поля относятся к manager-owned данным: ФИО, специальность обучения, дата рождения и логин/e-mail.
         </p>
         <button type="submit">Создать аккаунт</button>
     </form>
 
     <div style="margin-top:14px;">
-        <a href="{% url 'manager_dashboard' %}" style="color:#0a2540; text-decoration:none;">← В кабинет менеджера</a>
+        <a href="{% url 'manager_dashboard' %}" class="link-btn">← В кабинет менеджера</a>
     </div>
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const birthInput = document.querySelector('input[name="birth_date"]');
+    const parentBlock = document.getElementById('parent-fields');
+    if (!birthInput || !parentBlock) {
+        return;
+    }
+    const toggleParentFields = () => {
+        const value = birthInput.value;
+        if (!value) {
+            parentBlock.style.display = 'none';
+            return;
+        }
+        const birth = new Date(value + 'T00:00:00');
+        const today = new Date();
+        let age = today.getFullYear() - birth.getFullYear();
+        const monthDiff = today.getMonth() - birth.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+            age -= 1;
+        }
+        parentBlock.style.display = age < 18 ? 'block' : 'none';
+    };
+    birthInput.addEventListener('change', toggleParentFields);
+    toggleParentFields();
+});
+</script>
 {% endblock %}

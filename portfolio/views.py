@@ -100,6 +100,46 @@ def create_notification(user, title, message, url='', level='info', send_email=F
 				logger.exception('Failed to send notification email to %s', to_email)
 
 
+def send_vacancy_notifications(vacancy):
+	"""
+	Отправляет уведомления студентам о новой вакансии, если они подписаны на уведомления и их специальность указана в target_specialties.
+	"""
+	if not vacancy.target_specialties:
+		return
+
+	specialties = [item.strip() for item in vacancy.target_specialties.split(',') if item.strip()]
+	if not specialties:
+		return
+
+	query = Q()
+	for specialty in specialties:
+		query |= Q(specialty__icontains=specialty)
+
+	students = Student.objects.filter(
+		query,
+		receive_vacancy_notifications=True,
+		user__is_active=True,
+	).select_related('user')
+
+	for student in students:
+		create_notification(
+			user=student.user,
+			title=f'Новая вакансия: {vacancy.title}',
+			message=f'Появилась новая вакансия "{vacancy.title}" от {vacancy.employer.company_name}. Проверьте, подходит ли она вам.',
+			url=f'/vacancy/{vacancy.id}/',
+			level='info',
+			send_email=True,
+			email_subject=f'Новая вакансия: {vacancy.title}',
+			email_message=(
+				f'Здравствуйте, {student.full_name}!\n\n'
+				f'Появилась новая вакансия "{vacancy.title}" от {vacancy.employer.company_name}.\n\n'
+				f'Описание: {vacancy.description[:200]}...\n\n'
+				f'Посмотреть вакансию: {settings.SITE_URL}/vacancy/{vacancy.id}/\n\n'
+				'Если вы больше не хотите получать уведомления о вакансиях, отключите их в настройках профиля.'
+			),
+		)
+
+
 def get_manager_users():
 	# активные менеджеры + staff
 	qs = User.objects.filter(is_active=True).filter(
@@ -112,8 +152,16 @@ def has_employer_contact_access(employer, student):
 	return ContactRequest.objects.filter(
 		employer=employer,
 		student=student,
-		status='approved_by_student',
+		status__in=ContactRequest.APPROVED_STATUSES,
 	).exists()
+
+
+def get_manager_contact_requests_qs(manager):
+	if manager is None:
+		return ContactRequest.objects.all()
+	return ContactRequest.objects.filter(
+		Q(manager=manager) | Q(manager__isnull=True, student__manager=manager)
+	)
 
 
 def is_manager_user(user):
@@ -212,7 +260,7 @@ class CustomAuthenticationForm(AuthenticationForm):
 class StudentRegistrationForm(forms.ModelForm):
 	class Meta:
 		model = Student
-		fields = ['full_name', 'course', 'student_card_number', 'social_link', 'contact_email', 'data_processing_consent']
+		fields = ['full_name', 'specialty', 'student_card_number', 'social_link', 'contact_email', 'data_processing_consent']
 
 
 class EmployerRegistrationForm(forms.ModelForm):
@@ -291,10 +339,11 @@ class ProjectForm(forms.ModelForm):
 class VacancyForm(forms.ModelForm):
 	class Meta:
 		model = Vacancy
-		fields = ['title', 'description', 'requirements', 'region', 'tech_stack', 'employment_type', 'status', 'is_public']
+		fields = ['title', 'description', 'requirements', 'region', 'employment_type', 'status', 'is_public', 'target_specialties', 'send_notifications']
 		widgets = {
 			'description': forms.Textarea(attrs={'rows': 5}),
 			'requirements': forms.Textarea(attrs={'rows': 4}),
+			'target_specialties': forms.Textarea(attrs={'rows': 2, 'placeholder': 'Введите специальности через запятую, например: Программирование, Дизайн'}),
 		}
 
 
@@ -372,9 +421,13 @@ class StudentDashboardForm(StudentProfileForm):
 		required=False,
 		label='Режим «Инкогнито» (скрыть ФИО/группу/фото на публичной странице)'
 	)
+	receive_vacancy_notifications = forms.BooleanField(
+		required=False,
+		label='Получать уведомления о новых вакансиях по моей специальности'
+	)
 
 	class Meta(StudentProfileForm.Meta):
-		fields = StudentProfileForm.Meta.fields + ['hide_contacts', 'is_private', 'is_incognito']
+		fields = StudentProfileForm.Meta.fields + ['hide_contacts', 'is_private', 'is_incognito', 'receive_vacancy_notifications']
 
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
@@ -384,17 +437,43 @@ class StudentDashboardForm(StudentProfileForm):
 			self.fields['hide_contacts'].initial = student.hide_contacts
 			self.fields['is_private'].initial = student.is_private
 			self.fields['is_incognito'].initial = getattr(student, 'is_incognito', False)
+			self.fields['receive_vacancy_notifications'].initial = student.receive_vacancy_notifications
+			self.old_approved = student.is_approved
 
 	def save(self, commit=True):
 		student = super().save(commit=False)
 		student.hide_contacts = self.cleaned_data.get('hide_contacts', False)
 		student.is_private = self.cleaned_data.get('is_private', False)
 		student.is_incognito = self.cleaned_data.get('is_incognito', False)
-		student.is_approved = False
-		student.is_submitted_for_review = False
+		student.receive_vacancy_notifications = self.cleaned_data.get('receive_vacancy_notifications', True)
+
+		# Если профиль был одобрен, при сохранении изменений отправляем на повторную модерацию
+		if getattr(self, 'old_approved', False):
+			student.is_approved = False
+			student.is_submitted_for_review = True
 
 		if commit:
 			student.save()
+
+			# Если был одобрен и теперь на модерации, уведомляем менеджеров
+			if getattr(self, 'old_approved', False):
+				manager_users = get_manager_users()
+				for manager in manager_users:
+					create_notification(
+						user=manager,
+						title=f'Обновленный профиль на модерацию: {student.full_name}',
+						message=(
+							f'Студент {student.full_name} обновил одобренный профиль и отправил на повторную модерацию.\n'
+							f'Email: {student.user.email or "не указан"}\n'
+							f'Группа/специальность: {student.specialty}\n'
+							f'Контактный email: {student.contact_email or "не указан"}\n'
+							f'Навыков: {student.skills.count()}\n'
+							f'Проектов/достижений: {student.achievements.count()}\n\n'
+							f'Проверьте профиль в панели модерации.'
+						),
+						url=f'/manager/students/pending/',
+						level='info',
+					)
 
 			selected_skills = list(self.cleaned_data.get('skills') or [])
 			custom_skills_raw = self.cleaned_data.get('custom_skills', '')
@@ -422,7 +501,7 @@ class StudentDashboardForm(StudentProfileForm):
 class AdminCreateStudentForm(forms.Form):
 	email = forms.EmailField(required=True, label='Электронная почта')
 	full_name = forms.CharField(required=True, label='ФИО', max_length=200)
-	course = forms.CharField(required=True, label='Группа / Специальность', max_length=100)
+	specialty = forms.CharField(required=True, label='Специальность', max_length=200)
 	birth_date = forms.DateField(required=True, label='Дата рождения', widget=forms.DateInput(attrs={'type': 'date'}))
 
 	def clean_email(self):
@@ -430,6 +509,30 @@ class AdminCreateStudentForm(forms.Form):
 		if not email:
 			return email
 		if User.objects.filter(username__iexact=email).exists() or User.objects.filter(email__iexact=email).exists():
+			raise forms.ValidationError('Пользователь с таким email уже существует.')
+		return email
+
+
+class AdminEditStudentForm(forms.Form):
+	email = forms.EmailField(required=True, label='Электронная почта')
+	full_name = forms.CharField(required=True, label='ФИО', max_length=200)
+	specialty = forms.CharField(required=True, label='Специальность', max_length=200)
+	birth_date = forms.DateField(required=True, label='Дата рождения', widget=forms.DateInput(attrs={'type': 'date'}))
+	parent_phone = forms.CharField(required=False, label='Телефон родителя (законного представителя)', max_length=50)
+	parent_email = forms.EmailField(required=False, label='Электронная почта родителя (законного представителя)')
+
+	def __init__(self, *args, student=None, **kwargs):
+		self.student = student
+		super().__init__(*args, **kwargs)
+
+	def clean_email(self):
+		email = (self.cleaned_data.get('email') or '').lower().strip()
+		if not email:
+			return email
+		existing = User.objects.filter(Q(username__iexact=email) | Q(email__iexact=email))
+		if self.student:
+			existing = existing.exclude(pk=self.student.user_id)
+		if existing.exists():
 			raise forms.ValidationError('Пользователь с таким email уже существует.')
 		return email
 
@@ -463,9 +566,14 @@ class CreateManagerForm(UserCreationForm):
 		return user
 
 
+class GroupForm(forms.Form):
+	"""Управление группами отключено: модель группы была удалена из схемы базы данных."""
+	pass
+
+
 @login_required
 def add_project(request):
-	student, _ = Student.objects.get_or_create(user=request.user, defaults={'full_name': request.user.username, 'course': 'Студент'})
+	student, _ = Student.objects.get_or_create(user=request.user, defaults={'full_name': request.user.username})
 	if request.method == 'POST':
 		form = ProjectForm(request.POST, request.FILES)
 		if form.is_valid():
@@ -497,7 +605,7 @@ def add_project(request):
 
 @login_required
 def edit_project(request, project_id):
-	student, _ = Student.objects.get_or_create(user=request.user, defaults={'full_name': request.user.username, 'course': 'Студент'})
+	student, _ = Student.objects.get_or_create(user=request.user, defaults={'full_name': request.user.username})
 	project = Achievement.objects.filter(id=project_id, student=student).first()
 	if not project:
 		return redirect('dashboard')
@@ -533,8 +641,35 @@ def edit_project(request, project_id):
 
 
 @login_required
+def delete_project(request, project_id):
+	if request.method != 'POST':
+		return redirect('dashboard')
+	student, _ = Student.objects.get_or_create(user=request.user, defaults={'full_name': request.user.username})
+	project = Achievement.objects.filter(id=project_id, student=student).first()
+	if not project:
+		return redirect('dashboard')
+	project.delete()
+	student.is_approved = False
+	student.is_submitted_for_review = True
+	student.rejection_reason = ''
+	student.save(update_fields=['is_approved', 'is_submitted_for_review', 'rejection_reason', 'updated_at'])
+	for manager_user in get_manager_users():
+		create_notification(
+			user=manager_user,
+			title='Профиль отправлен на модерацию (удалено достижение)',
+			message=f'Студент "{student.full_name}" удалил достижение. Проверьте профиль.',
+			url='/manager/students/pending/',
+			level='info',
+			send_email=True,
+			email_subject='Профиль отправлен на модерацию (удалено достижение)',
+			email_message=f'Студент "{student.full_name}" удалил достижение. Проверьте профиль: /manager/students/pending/',
+		)
+	return redirect('dashboard')
+
+
+@login_required
 def edit_employer_profile(request):
-	employer, _ = Employer.objects.get_or_create(user=request.user, defaults={'company_name': '', 'sector': 'other', 'contact_person': ''})
+	employer, _ = Employer.objects.get_or_create(user=request.user, defaults={'company_name': '', 'sector': '', 'contact_person': ''})
 	if request.method == 'POST':
 		form = EmployerProfileForm(request.POST, instance=employer)
 		if form.is_valid():
@@ -563,8 +698,12 @@ def dashboard(request):
 		if request.method == 'POST':
 			dashboard_form = StudentDashboardForm(request.POST, request.FILES, instance=student)
 			if dashboard_form.is_valid():
+				old_approved = student.is_approved
 				dashboard_form.save()
-				save_message = 'Изменения сохранены в черновик. Когда будете готовы, отправьте профиль на модерацию.'
+				if old_approved:
+					save_message = 'Профиль обновлен и отправлен на модерацию.'
+				else:
+					save_message = 'Изменения сохранены в черновик. Когда будете готовы, отправьте профиль на модерацию.'
 				dashboard_form = StudentDashboardForm(instance=student)
 		else:
 			dashboard_form = StudentDashboardForm(instance=student)
@@ -593,23 +732,56 @@ def dashboard(request):
 
 @manager_required
 def manager_dashboard(request):
+	if not is_manager_user(request.user):
+		return redirect('dashboard')
+	
+	manager = request.user.manager_profile if hasattr(request.user, 'manager_profile') else None
+	
 	pending_students = Student.objects.filter(is_submitted_for_review=True).count()
 	pending_employers = Employer.objects.filter(is_approved=False).count()
 	recent_students = Student.objects.order_by('-updated_at')[:5]
 	recent_employers = Employer.objects.order_by('-created_at')[:5]
+	
+	# Получаем статистику по запросам контактов и откликам
+	pending_contact_requests = 0
+	recent_contact_requests = []
+	pending_applications = Application.objects.filter(
+		status='submitted'
+	).count()
+	recent_applications = Application.objects.select_related(
+		'student', 'vacancy', 'vacancy__employer'
+	).order_by('-created_at')[:5]
+	
+	if manager:
+		pending_contact_requests = ContactRequest.objects.filter(
+			manager=manager,
+			status='pending_manager'
+		).count()
+		recent_contact_requests = ContactRequest.objects.filter(
+			manager=manager
+		).select_related('employer', 'student').order_by('-requested_at')[:5]
+	
 	return render(request, 'portfolio/manager_dashboard.html', {
 		'pending_students': pending_students,
 		'pending_employers': pending_employers,
 		'recent_students': recent_students,
 		'recent_employers': recent_employers,
 		'can_manage_managers': request.user.is_staff or request.user.is_superuser,
+		'pending_contact_requests': pending_contact_requests,
+		'recent_contact_requests': recent_contact_requests,
+		'pending_applications': pending_applications,
+		'recent_applications': recent_applications,
 	})
 
 
 @manager_required
 def manager_students_pending(request):
 	students = Student.objects.filter(is_submitted_for_review=True).select_related('user').prefetch_related('skills', 'achievements')
-	return render(request, 'portfolio/manager_students_pending.html', {'students': students})
+	prefix = (request.META.get('SCRIPT_NAME') or '').rstrip('/')
+	students_list = list(students)
+	for s in students_list:
+		s.manager_reject_url = f'{prefix}/manager/students/{s.pk}/reject/'
+	return render(request, 'portfolio/manager_students_pending.html', {'students': students_list})
 
 
 @manager_required
@@ -617,7 +789,7 @@ def manager_students_all(request):
 	q = (request.GET.get('q') or '').strip()
 	students = Student.objects.all().select_related('user').order_by('full_name')
 	if q:
-		students = students.filter(Q(full_name__icontains=q) | Q(course__icontains=q) | Q(user__email__icontains=q))
+		students = students.filter(Q(full_name__icontains=q) | Q(specialty__icontains=q) | Q(user__email__icontains=q))
 	return render(request, 'portfolio/manager_students_all.html', {'students': students, 'q': q})
 
 
@@ -689,7 +861,7 @@ def manager_create_student(request):
 					Student.objects.create(
 						user=user,
 						full_name=form.cleaned_data['full_name'],
-						course=form.cleaned_data['course'],
+						specialty=form.cleaned_data['specialty'],
 						birth_date=form.cleaned_data['birth_date'],
 						is_approved=False,
 						data_processing_consent=False,
@@ -722,6 +894,50 @@ def manager_create_student(request):
 		'plain_password': plain_password,
 		'email_sent': email_sent,
 		'email_error': email_error,
+	})
+
+
+@manager_required
+def manager_edit_student(request, student_id):
+	student = Student.objects.select_related('user').filter(id=student_id).first()
+	if not student:
+		return redirect('manager_students_all')
+
+	initial = {
+		'email': student.user.email,
+		'full_name': student.full_name,
+		'specialty': student.specialty,
+		'birth_date': student.birth_date,
+		'parent_phone': student.parent_phone,
+		'parent_email': student.parent_email,
+	}
+
+	if request.method == 'POST':
+		form = AdminEditStudentForm(request.POST, student=student)
+		if form.is_valid():
+			email = form.cleaned_data['email']
+			user = student.user
+			if user.username != email or user.email != email:
+				user.username = email
+				user.email = email
+				user.save(update_fields=['username', 'email'])
+			student.full_name = form.cleaned_data['full_name']
+			student.specialty = form.cleaned_data['specialty']
+			student.birth_date = form.cleaned_data['birth_date']
+			student.parent_phone = form.cleaned_data.get('parent_phone', '')
+			student.parent_email = form.cleaned_data.get('parent_email', '')
+			student.save(update_fields=[
+				'full_name', 'specialty', 'birth_date',
+				'parent_phone', 'parent_email', 'updated_at',
+			])
+			return redirect('manager_students_all')
+	else:
+		form = AdminEditStudentForm(initial=initial, student=student)
+
+	return render(request, 'portfolio/manager_edit_student.html', {
+		'form': form,
+		'student': student,
+		'is_minor': student.is_under_18,
 	})
 
 
@@ -819,7 +1035,7 @@ def submit_profile_for_moderation(request):
 		message=(
 			f'Студент {student.full_name} отправил профиль на модерацию.\n'
 			f'Email: {student.user.email or "не указан"}\n'
-			f'Группа/специальность: {student.course}\n'
+			f'Группа/специальность: {student.specialty}\n'
 			f'Контактный email: {student.contact_email or "не указан"}\n'
 			f'Навыков: {student.skills.count()}\n'
 			f'Проектов/достижений: {student.achievements.count()}\n\n'
@@ -880,11 +1096,11 @@ def index(request):
 
 	students = Student.objects.filter(is_approved=True, is_private=False).prefetch_related('skills', 'achievements')
 	if specialty:
-		students = students.filter(course__icontains=specialty)
+		students = students.filter(specialty__icontains=specialty)
 	if skill:
 		students = students.filter(Q(skills__name__icontains=skill) | Q(achievements__title__icontains=skill) | Q(achievements__link__icontains=skill)).distinct()
 	if region:
-		students = students.filter(course__icontains=region)
+		students = students.filter(Q(specialty__icontains=region) | Q(full_name__icontains=region))
 
 	students = list(students)
 	status_order = {'internship': 0, 'job': 1, 'found': 2}
@@ -895,12 +1111,15 @@ def index(request):
 		is_public=True,
 	).select_related('employer').order_by('-created_at')[:7]
 
+	specialties = Student.objects.filter(specialty__gt='').order_by('specialty').values_list('specialty', flat=True).distinct()
+
 	return render(request, 'portfolio/index.html', {
 		'students': students,
 		'specialty': specialty,
 		'skill': skill,
 		'region': region,
 		'featured_vacancies': featured_vacancies,
+		'specialties': specialties,
 	})
 
 
@@ -934,7 +1153,7 @@ def signup(request):
 						f'Компания: {employer.company_name}\n'
 						f'Контактное лицо: {employer.contact_person}\n'
 						f'Email: {user.email}\n'
-						f'Сфера: {employer.get_sector_display()}\n'
+						f'Сфера: {employer.sector or "Не указана"}\n'
 						f'Сайт: {employer.website or "не указан"}\n\n'
 						'Профиль ожидает одобрения.'
 					),
@@ -999,6 +1218,10 @@ def notifications_mark_all_read(request):
 	return redirect('notifications')
 
 
+def about_organization(request):
+	return render(request, 'portfolio/about_organization.html')
+
+
 def help_guide(request):
 	return render(request, 'portfolio/help_guide.html')
 
@@ -1006,26 +1229,31 @@ def help_guide(request):
 def vacancies_list(request):
 	q = (request.GET.get('q') or '').strip()
 	region = (request.GET.get('region') or '').strip()
-	stack = (request.GET.get('stack') or '').strip()
 	emp_type = (request.GET.get('type') or '').strip()
+	specialty = (request.GET.get('specialty') or '').strip()
 
 	vacancies = Vacancy.objects.filter(status='published', is_public=True).select_related('employer', 'employer__user').order_by('-created_at')
 	if q:
 		vacancies = vacancies.filter(Q(title__icontains=q) | Q(description__icontains=q) | Q(requirements__icontains=q))
 	if region:
 		vacancies = vacancies.filter(region__icontains=region)
-	if stack:
-		vacancies = vacancies.filter(tech_stack__icontains=stack)
 	if emp_type:
 		vacancies = vacancies.filter(employment_type=emp_type)
+	if specialty:
+		vacancies = vacancies.filter(target_specialties__icontains=specialty)
+
+	vacancies = vacancies.distinct()
+
+	specialties = Student.objects.filter(specialty__gt='').order_by('specialty').values_list('specialty', flat=True).distinct()
 
 	return render(request, 'portfolio/vacancies_list.html', {
 		'vacancies': vacancies,
 		'q': q,
 		'region': region,
-		'stack': stack,
 		'emp_type': emp_type,
+		'specialty': specialty,
 		'emp_types': Vacancy.EMPLOYMENT_TYPES,
+		'specialties': specialties,
 	})
 
 
@@ -1067,6 +1295,9 @@ def vacancy_create(request):
 			vacancy = form.save(commit=False)
 			vacancy.employer = employer
 			vacancy.save()
+			form.save_m2m()  # Сохраняем M2M поля
+			if form.cleaned_data.get('send_notifications'):
+				send_vacancy_notifications(vacancy)
 			return redirect('employer_vacancies')
 	else:
 		form = VacancyForm(initial={'status': 'published', 'is_public': True})
@@ -1280,6 +1511,142 @@ def update_application_status(request, application_id):
 
 
 @login_required
+@manager_required
+def manager_contact_requests(request):
+	"""Список запросов контактов от работодателей к менеджеру"""
+	if not is_manager_user(request.user):
+		return redirect('dashboard')
+	
+	manager = request.user.manager_profile if hasattr(request.user, 'manager_profile') else None
+	if manager is None and not (request.user.is_staff or request.user.is_superuser):
+		return redirect('dashboard')
+
+	contact_requests = get_manager_contact_requests_qs(manager)
+	contact_requests = contact_requests.select_related('employer', 'employer__user', 'student', 'student__user')
+	
+	status_filter = request.GET.get('status', '')
+	contact_requests = ContactRequest.filter_by_status(contact_requests, status_filter)
+	
+	# Сортировка по времени
+	sort = request.GET.get('sort', '-requested_at')
+	valid_sorts = ['-requested_at', 'requested_at']
+	if sort in valid_sorts:
+		contact_requests = contact_requests.order_by(sort)
+	else:
+		contact_requests = contact_requests.order_by('-requested_at')
+	
+	return render(request, 'portfolio/manager_contact_requests.html', {
+		'contact_requests': contact_requests,
+		'status_choices': ContactRequest.STATUS_CHOICES,
+		'current_status': status_filter,
+		'current_sort': sort,
+	})
+
+
+@login_required
+@manager_required
+def manager_approve_contact_request(request, request_id):
+	"""Одобрение запроса контактов"""
+	if request.method != 'POST':
+		return redirect('manager_contact_requests')
+	
+	manager = request.user.manager_profile if hasattr(request.user, 'manager_profile') else None
+	if manager is None and not (request.user.is_staff or request.user.is_superuser):
+		return redirect('manager_contact_requests')
+
+	requests_qs = get_manager_contact_requests_qs(manager)
+	cr = requests_qs.filter(
+		id=request_id
+	).select_related('employer', 'student', 'student__user').first()
+	
+	if not cr or cr.normalized_status != 'pending_manager':
+		return redirect('manager_contact_requests')
+	
+	form = ContactRequestDecisionForm(request.POST)
+	if form.is_valid():
+		cr.status = 'approved_by_manager'
+		cr.manager_response_message = (form.cleaned_data.get('response_message') or '').strip()
+		cr.manager_responded_at = timezone.now()
+		cr.save(update_fields=['status', 'manager_response_message', 'manager_responded_at', 'updated_at'])
+		
+		# Отправляем уведомление работодателю с контактами студента
+		student_contact_info = []
+		if cr.student.phone:
+			student_contact_info.append(f'Телефон: {cr.student.phone}')
+		if cr.student.contact_email:
+			student_contact_info.append(f'Email: {cr.student.contact_email}')
+		if cr.student.telegram:
+			student_contact_info.append(f'Telegram: {cr.student.telegram}')
+		if cr.student.whatsapp:
+			student_contact_info.append(f'WhatsApp: {cr.student.whatsapp}')
+		
+		contacts_text = '\n'.join(student_contact_info) if student_contact_info else 'Контакты студента не указаны.'
+		
+		create_notification(
+			user=cr.employer.user,
+			title='Запрос контакта одобрен менеджером',
+			message=f'Менеджер одобрил ваш запрос контактов студента "{cr.student.full_name}".\n\nКонтакты:\n{contacts_text}',
+			url=f'/profile/{cr.student.id}/',
+			level='success',
+			send_email=True,
+			email_subject='Запрос контакта одобрен',
+			email_message=(
+				f'Здравствуйте!\n\n'
+				f'Ваш запрос на получение контактов студента "{cr.student.full_name}" одобрен менеджером образовательного учреждения.\n\n'
+				f'Контакты студента:\n{contacts_text}\n\n'
+				f'Сообщение менеджера: {cr.manager_response_message or "нет"}\n\n'
+				f'Удачи в общении!'
+			),
+		)
+	
+	return redirect('manager_contact_requests')
+
+
+@login_required
+@manager_required
+def manager_reject_contact_request(request, request_id):
+	"""Отклонение запроса контактов"""
+	if request.method != 'POST':
+		return redirect('manager_contact_requests')
+	
+	manager = request.user.manager_profile if hasattr(request.user, 'manager_profile') else None
+	if manager is None and not (request.user.is_staff or request.user.is_superuser):
+		return redirect('manager_contact_requests')
+
+	requests_qs = get_manager_contact_requests_qs(manager)
+	cr = requests_qs.filter(
+		id=request_id
+	).select_related('employer', 'student', 'student__user').first()
+	
+	if not cr or cr.normalized_status != 'pending_manager':
+		return redirect('manager_contact_requests')
+	
+	form = ContactRequestDecisionForm(request.POST)
+	if form.is_valid():
+		cr.status = 'rejected_by_manager'
+		cr.manager_response_message = (form.cleaned_data.get('response_message') or '').strip()
+		cr.manager_responded_at = timezone.now()
+		cr.save(update_fields=['status', 'manager_response_message', 'manager_responded_at', 'updated_at'])
+		
+		create_notification(
+			user=cr.employer.user,
+			title='Запрос контакта отклонён',
+			message=f'Менеджер отклонил ваш запрос контактов студента "{cr.student.full_name}".\nПричина: {cr.manager_response_message or "не указана"}',
+			url='/',
+			level='warning',
+			send_email=True,
+			email_subject='Запрос контакта отклонён',
+			email_message=(
+				f'Здравствуйте!\n\n'
+				f'К сожалению, ваш запрос на получение контактов студента "{cr.student.full_name}" был отклонен менеджером.\n\n'
+				f'Причина: {cr.manager_response_message or "не указана"}'
+			),
+		)
+	
+	return redirect('manager_contact_requests')
+
+
+@login_required
 def student_contact_requests(request):
 	if not hasattr(request.user, 'student'):
 		return redirect('dashboard')
@@ -1293,33 +1660,33 @@ def approve_contact_request(request, request_id):
 	if request.method != 'POST' or not hasattr(request.user, 'student'):
 		return redirect('student_contact_requests')
 	cr = ContactRequest.objects.filter(id=request_id, student=request.user.student).select_related('employer', 'employer__user').first()
-	if not cr or cr.status != 'pending_student':
+	if not cr or cr.status != 'pending_manager':
 		return redirect('student_contact_requests')
 	form = ContactRequestDecisionForm(request.POST)
 	if form.is_valid():
-		cr.status = 'approved_by_student'
-		cr.student_response_message = (form.cleaned_data.get('response_message') or '').strip()
-		cr.responded_at = timezone.now()
-		cr.save(update_fields=['status', 'student_response_message', 'responded_at', 'updated_at'])
+		cr.status = 'approved_by_manager'
+		cr.manager_response_message = (form.cleaned_data.get('response_message') or '').strip()
+		cr.manager_responded_at = timezone.now()
+		cr.save(update_fields=['status', 'manager_response_message', 'manager_responded_at', 'updated_at'])
 
 		create_notification(
 			user=cr.employer.user,
-			title='Запрос контакта одобрен студентом',
-			message=f'Студент "{cr.student.full_name}" одобрил ваш запрос на связь. Теперь контакты доступны в профиле.',
+			title='Запрос контакта одобрен',
+			message=f'Менеджер одобрил ваш запрос на связь. Теперь контакты студента доступны в профиле.',
 			url=f'/profile/{cr.student.id}/',
 			level='success',
 			send_email=True,
 			email_subject='Запрос контакта одобрен',
 			email_message=(
-				f'Студент "{cr.student.full_name}" одобрил ваш запрос на связь.\n'
+				f'Менеджер "{request.user.manager_profile.full_name}" одобрил ваш запрос на связь.\n'
 				f'Откройте профиль: /profile/{cr.student.id}/'
 			),
 		)
 		create_notification(
 			user=cr.student.user,
-			title='Вы одобрили запрос на связь',
-			message=f'Вы одобрили запрос компании "{cr.employer.company_name}".',
-			url='/contact-requests/me/',
+			title='Менеджер одобрил запрос работодателя',
+			message=f'Менеджер одобрил запрос компании "{cr.employer.company_name}".',
+			url='/student-contact-requests/',
 			level='success',
 		)
 	return redirect('student_contact_requests')
@@ -1330,25 +1697,89 @@ def reject_contact_request(request, request_id):
 	if request.method != 'POST' or not hasattr(request.user, 'student'):
 		return redirect('student_contact_requests')
 	cr = ContactRequest.objects.filter(id=request_id, student=request.user.student).select_related('employer', 'employer__user').first()
-	if not cr or cr.status != 'pending_student':
+	if not cr or cr.status != 'pending_manager':
 		return redirect('student_contact_requests')
 	form = ContactRequestDecisionForm(request.POST)
 	if form.is_valid():
-		cr.status = 'rejected_by_student'
-		cr.student_response_message = (form.cleaned_data.get('response_message') or '').strip()
-		cr.responded_at = timezone.now()
-		cr.save(update_fields=['status', 'student_response_message', 'responded_at', 'updated_at'])
+		cr.status = 'rejected_by_manager'
+		cr.manager_response_message = (form.cleaned_data.get('response_message') or '').strip()
+		cr.manager_responded_at = timezone.now()
+		cr.save(update_fields=['status', 'manager_response_message', 'manager_responded_at', 'updated_at'])
 		create_notification(
 			user=cr.employer.user,
 			title='Запрос контакта отклонён',
-			message=f'Студент "{cr.student.full_name}" отклонил запрос на связь.',
+			message=f'Менеджер отклонил ваш запрос на связь.',
 			url=f'/profile/{cr.student.id}/',
 			level='warning',
 			send_email=True,
 			email_subject='Запрос контакта отклонён',
-			email_message=f'Студент "{cr.student.full_name}" отклонил запрос на связь.',
+			email_message=f'Менеджер отклонил ваш запрос на связь со студентом "{cr.student.full_name}".',
 		)
 	return redirect('student_contact_requests')
+
+
+@login_required
+@manager_required
+def manager_student_applications(request):
+	"""Список откликов студентов на вакансии для менеджера"""
+	if not is_manager_user(request.user):
+		return redirect('dashboard')
+	
+	# Получаем все отклики студентов на вакансии
+	applications = Application.objects.select_related(
+		'student', 'student__user', 'vacancy', 'vacancy__employer'
+	).order_by('-created_at')
+	
+	# Фильтрация по статусу
+	status_filter = request.GET.get('status', '')
+	if status_filter:
+		applications = applications.filter(status=status_filter)
+	
+	# Фильтрация по студенту
+	student_filter = request.GET.get('student', '').strip()
+	if student_filter:
+		applications = applications.filter(student__full_name__icontains=student_filter)
+	
+	# Фильтрация по работодателю
+	employer_filter = request.GET.get('employer', '').strip()
+	if employer_filter:
+		applications = applications.filter(vacancy__employer__company_name__icontains=employer_filter)
+	
+	# Сортировка
+	sort = request.GET.get('sort', '-created_at')
+	valid_sorts = ['-created_at', 'created_at', '-updated_at', 'updated_at', 'student__full_name', '-student__full_name']
+	if sort in valid_sorts:
+		applications = applications.order_by(sort)
+	else:
+		applications = applications.order_by('-created_at')
+	
+	return render(request, 'portfolio/manager_student_applications.html', {
+		'applications': applications,
+		'status_choices': Application.STATUS_CHOICES,
+		'current_status': status_filter,
+		'student_filter': student_filter,
+		'employer_filter': employer_filter,
+		'current_sort': sort,
+	})
+
+
+@login_required
+@manager_required
+def manager_application_detail(request, application_id):
+	"""Детальный просмотр отклика студента"""
+	if not is_manager_user(request.user):
+		return redirect('dashboard')
+	
+	application = Application.objects.select_related(
+		'student', 'student__user', 'vacancy', 'vacancy__employer'
+	).filter(id=application_id).first()
+	
+	if not application:
+		return redirect('manager_student_applications')
+	
+	return render(request, 'portfolio/manager_application_detail.html', {
+		'application': application,
+	})
 
 
 def login_view(request):
@@ -1590,7 +2021,7 @@ def update_inquiry_status(request, inquiry_id):
 
 @login_required
 def request_contact(request, student_id):
-	"""Работодатель запрашивает контакты студента"""
+	"""Работодатель запрашивает контакты студента через менеджера"""
 	try:
 		student = Student.objects.get(id=student_id)
 	except Student.DoesNotExist:
@@ -1602,10 +2033,6 @@ def request_contact(request, student_id):
 	
 	employer = request.user.employer
 
-	# Контакты несовершеннолетних недоступны работодателям.
-	if not student.is_adult:
-		return redirect('student_profile', student_id=student_id)
-	
 	message_form = ContactRequestMessageForm(request.POST)
 	message_text = ''
 	if message_form.is_valid():
@@ -1615,48 +2042,65 @@ def request_contact(request, student_id):
 		employer=employer,
 		student=student,
 		defaults={
-			'status': 'pending_student',
+			'status': 'pending_manager',
 			'employer_message': message_text,
+			'manager': student.manager,  # Назначаем менеджера студента
 		},
 	)
-	if not created and contact_request.status != 'pending_student':
-		contact_request.status = 'pending_student'
+	if contact_request.status == 'approved_by_manager':
+		return redirect('student_profile', student_id=student_id)
+	if not created and contact_request.status != 'pending_manager':
+		contact_request.status = 'pending_manager'
 	contact_request.employer_message = message_text
-	contact_request.responded_at = None
-	contact_request.student_response_message = ''
-	contact_request.save(update_fields=['status', 'employer_message', 'responded_at', 'student_response_message', 'updated_at'])
+	contact_request.manager_responded_at = None
+	contact_request.manager_response_message = ''
+	contact_request.save(update_fields=['status', 'employer_message', 'manager_responded_at', 'manager_response_message', 'updated_at'])
 
-	if created or contact_request.status == 'pending_student':
-		create_notification(
-			user=student.user,
-			title='Запрос на связь от работодателя',
-			message=f'Работодатель "{employer.company_name}" отправил запрос на связь. Перейдите в запросы и одобрите или отклоните.',
-			url='/contact-requests/me/',
-			level='info',
-			send_email=False,
-		)
-		student_email = (student.user.email or '').strip()
-		if student_email:
-			try:
-				send_mail(
-					subject='Запрос на связь от работодателя',
-					message=(
-						'Здравствуйте!\n\n'
-						'Работодатель хочет связаться с вами по вашему портфолио на «Доске почёта».\n\n'
-						f'Организация: {employer.company_name}\n'
-						f'Контактное лицо: {employer.contact_person}\n'
-						f'Email: {employer.user.email}\n'
-						f'Сайт: {employer.website or "не указан"}\n\n'
-						f'Комментарий работодателя: {message_text or "не указан"}\n\n'
-						'Подтвердите или отклоните запрос в кабинете.\n'
-						'Ваши контакты работодателю не раскрываются без вашего одобрения.'
-					),
-					from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', None),
-					recipient_list=[student_email],
-					fail_silently=False,
-				)
-			except Exception as exc:
-				logger.exception('Failed to send employer contact request email to %s', student_email)
+	if created or contact_request.status == 'pending_manager':
+		# Отправляем уведомление менеджеру, а не студенту
+		manager = student.manager
+		if manager:
+			create_notification(
+				user=manager.user,
+				title='Новый запрос контактов от работодателя',
+				message=f'Работодатель "{employer.company_name}" интересуется студентом "{student.full_name}". Перейдите в кабинет для просмотра.',
+				url='/manager-dashboard/',
+				level='info',
+				send_email=True,
+				email_subject='Новый запрос контактов от работодателя',
+				email_message=(
+					'Здравствуйте!\n\n'
+					'Работодатель интересуется одним из студентов вашего образовательного учреждения.\n\n'
+					f'Организация: {employer.company_name}\n'
+					f'Контактное лицо: {employer.contact_person}\n'
+					f'Email: {employer.user.email}\n'
+					f'Сайт: {employer.website or "не указан"}\n'
+					f'Телефон: {employer.phone or "не указан"}\n\n'
+					f'Студент: {student.full_name}\n'
+					f'Специальность: {student.specialty or "не указана"}\n\n'
+					f'Комментарий работодателя: {message_text or "не указан"}\n\n'
+					'Рассмотрите запрос в кабинете менеджера и решите, связать ли студента с работодателем.'
+				),
+			)
 	
 	return redirect('student_profile', student_id=student_id)
 
+
+@login_required
+def manager_groups(request):
+	return redirect('manager_dashboard')
+
+
+@login_required
+def group_create(request):
+	return redirect('manager_dashboard')
+
+
+@login_required
+def group_edit(request, group_id):
+	return redirect('manager_dashboard')
+
+
+@login_required
+def group_delete(request, group_id):
+	return redirect('manager_dashboard')

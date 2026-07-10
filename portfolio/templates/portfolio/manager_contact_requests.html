@@ -1,0 +1,221 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="manager-page">
+    <main class="manager-page__inner">
+        <div class="dashboard-content">
+            <h1>Запросы контактов студентов</h1>
+            <p style="color:#6b7280;">Работодатели интересуются студентами. Вы можете одобрить запрос и предоставить контакты, или отклонить.</p>
+
+            <!-- Фильтры -->
+            <div style="margin: 24px 0; padding: 16px; background: #f3f4f6; border-radius: 8px;">
+                <form method="get" id="filterForm" style="display: grid; gap: 12px;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+                        <label style="display: flex; flex-direction: column;">
+                            <span style="font-size: 13px; font-weight: 500; margin-bottom: 6px;">Статус запроса</span>
+                            <select name="status" id="statusFilter" style="padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 4px;">
+                                <option value="">Все статусы</option>
+                                {% for value, label in status_choices %}
+                                    {% if value != 'expired' %}
+                                        <option value="{{ value }}" {% if current_status == value %}selected{% endif %}>{{ label }}</option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                        </label>
+                        <label style="display: flex; flex-direction: column;">
+                            <span style="font-size: 13px; font-weight: 500; margin-bottom: 6px;">Сортировка</span>
+                            <select name="sort" id="sortFilter" style="padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 4px;">
+                                <option value="-requested_at" {% if current_sort == '-requested_at' %}selected{% endif %}>По времени (новые сверху)</option>
+                                <option value="requested_at" {% if current_sort == 'requested_at' %}selected{% endif %}>По времени (старые сверху)</option>
+                            </select>
+                        </label>
+                    </div>
+                </form>
+            </div>
+
+            {% if contact_requests %}
+                {% for request in contact_requests %}
+                    <section class="profile-section">
+                        <div style="display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap;">
+                            <!-- Информация о работодателе -->
+                            <div style="flex: 1; min-width: 280px;">
+                                <h2 style="margin-bottom: 8px;">{{ request.employer.company_name }}</h2>
+                                <p><strong>Контактное лицо:</strong> {{ request.employer.contact_person }}</p>
+                                <p><strong>Email:</strong> {{ request.employer.user.email }}</p>
+                                <p><strong>Телефон:</strong> {{ request.employer.phone|default:"не указан" }}</p>
+                                <p><strong>Сфера деятельности:</strong> {{ request.employer.sector }}</p>
+                                {% if request.employer.website %}
+                                    <p><strong>Сайт:</strong> <a href="{{ request.employer.website }}" target="_blank" rel="noopener">{{ request.employer.website }}</a></p>
+                                {% endif %}
+                                
+                                <div style="margin-top: 12px;">
+                                    <span class="status-badge" style="
+                                        display: inline-block;
+                                        padding: 6px 12px;
+                                        border-radius: 20px;
+                                        font-size: 13px;
+                                        font-weight: 500;
+                                        {% if request.normalized_status == 'pending_manager' %}
+                                            background: #fef3c7;
+                                            color: #92400e;
+                                        {% elif request.normalized_status == 'approved_by_manager' %}
+                                            background: #dcfce7;
+                                            color: #166534;
+                                        {% else %}
+                                            background: #fee2e2;
+                                            color: #991b1b;
+                                        {% endif %}
+                                    ">
+                                        {{ request.get_effective_status_display }}
+                                    </span>
+                                    <span style="color: #6b7280; font-size: 13px; margin-left: 12px;">
+                                        {{ request.requested_at|date:"d.m.Y H:i" }}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Информация о студенте -->
+                            <div style="flex: 1; min-width: 280px; border-left: 4px solid var(--tk-border); padding-left: 16px;">
+                                <h3 style="margin-bottom: 8px; color: var(--tk-blue);">Студент</h3>
+                                <p><strong>ФИО:</strong> {{ request.student.full_name }}</p>
+                                <p><strong>Специальность:</strong> {{ request.student.specialty|default:"не указана" }}</p>
+                                <p><strong>Email:</strong> {{ request.student.contact_email|default:request.student.user.email }}</p>
+                                <p><strong>Телефон:</strong> {{ request.student.phone|default:"не указан" }}</p>
+                                {% if request.student.telegram %}
+                                    <p><strong>Telegram:</strong> {{ request.student.telegram }}</p>
+                                {% endif %}
+                                {% if request.student.whatsapp %}
+                                    <p><strong>WhatsApp:</strong> {{ request.student.whatsapp }}</p>
+                                {% endif %}
+                                <a href="{% url 'student_profile' request.student.id %}" class="btn-accent" style="display: inline-block; margin-top: 12px; text-decoration: none;">Открыть профиль студента</a>
+                            </div>
+                        </div>
+
+                        <!-- Комментарий работодателя -->
+                        {% if request.employer_message %}
+                            <div style="margin-top: 16px; padding: 12px; background: #f9fafb; border-left: 4px solid #3b82f6; border-radius: 4px;">
+                                <strong style="display: block; margin-bottom: 8px;">Комментарий работодателя:</strong>
+                                <p style="margin: 0; white-space: pre-wrap;">{{ request.employer_message }}</p>
+                            </div>
+                        {% endif %}
+
+                        <!-- Ответ менеджера -->
+                        {% if request.manager_response_message %}
+                            <div style="margin-top: 16px; padding: 12px; background: #f0fdf4; border-left: 4px solid #10b981; border-radius: 4px;">
+                                <strong style="display: block; margin-bottom: 8px;">Ваш ответ ({{ request.manager_responded_at|date:"d.m.Y H:i" }}):</strong>
+                                <p style="margin: 0; white-space: pre-wrap;">{{ request.manager_response_message }}</p>
+                            </div>
+                        {% endif %}
+
+                        <!-- Действия -->
+                        {% if request.normalized_status == 'pending_manager' %}
+                            <div style="margin-top: 16px; display: flex; gap: 12px; flex-wrap: wrap;">
+                                <form method="post" action="{% url 'manager_approve_contact_request' request.id %}" style="margin:0;">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="response_message" value="">
+                                    <button type="submit" class="btn-primary" style="padding: 10px 16px;">✓ Одобрить запрос</button>
+                                </form>
+                                <form method="post" action="{% url 'manager_reject_contact_request' request.id %}" style="margin:0;">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="response_message" value="">
+                                    <button type="submit" class="btn-secondary" style="background: #ef4444; color: white; padding: 10px 16px;">✗ Отклонить запрос</button>
+                                </form>
+                            </div>
+                        {% endif %}
+                    </section>
+                {% endfor %}
+            {% else %}
+                <div style="padding: 32px; text-align: center; background: #f9fafb; border-radius: 8px; margin-top: 24px;">
+                    <p style="color: #6b7280; font-size: 16px;">
+                        {% if current_status %}
+                            Нет запросов с таким статусом.
+                        {% else %}
+                            Нет запросов контактов.
+                        {% endif %}
+                    </p>
+                </div>
+            {% endif %}
+        </div>
+    </main>
+</div>
+
+<style>
+.profile-section {
+    padding: 20px;
+    margin: 16px 0;
+    border: 1px solid var(--tk-border);
+    border-radius: 8px;
+    background: var(--tk-white);
+}
+
+.btn-primary-tk {
+    background: var(--tk-blue);
+    color: var(--tk-white);
+    padding: 10px 16px;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-primary-tk:hover {
+    background: var(--tk-blue-dark);
+}
+
+.btn-secondary {
+    background: var(--tk-muted);
+    color: var(--tk-white);
+}
+
+.btn-secondary:hover {
+    background: #64748b;
+}
+
+.action-btn {
+    display: inline-block;
+    padding: 8px 12px;
+    background: var(--tk-blue);
+    color: var(--tk-white);
+    border-radius: 4px;
+    font-size: 13px;
+    transition: background 0.3s ease;
+}
+
+.action-btn:hover {
+    background: var(--tk-blue-dark);
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.skill-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    background: var(--tk-blue-soft);
+    color: var(--tk-blue);
+    border-radius: 16px;
+    font-size: 13px;
+    margin: 4px;
+}
+</style>
+
+<script>
+// Автоматическая фильтрация при изменении select
+document.getElementById('statusFilter').addEventListener('change', function() {
+    document.getElementById('filterForm').submit();
+});
+
+document.getElementById('sortFilter').addEventListener('change', function() {
+    document.getElementById('filterForm').submit();
+});
+</script>
+
+{% endblock %}

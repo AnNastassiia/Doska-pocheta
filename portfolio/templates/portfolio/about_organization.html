@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="help-page about-page">
+  <div class="help-page__inner">
+    <header class="help-page__header reveal">
+      <h1>Центр профориентации «Траектория»</h1>
+      <p>
+        Центр профориентации «Траектория» открыт для всех детей и подростков — школьников и студентов.
+        Мы помогаем осознанно выбрать профессию, попробовать себя в деле и получить первичные навыки.
+        На этой платформе — цифровая доска почёта участников и витрина вакансий от партнёров.
+      </p>
+    </header>
+
+    <section class="about-panel reveal" style="--reveal-delay: 1;">
+      <h2 class="about-section-title">Чем мы занимаемся</h2>
+      <p class="about-section-sub">Основные направления работы центра</p>
+      <div class="about-services">
+        <div class="about-service">
+          <h3>Консультации</h3>
+          <p>Индивидуальные и групповые встречи с профориентологом: выбор профессии, поступление в колледж или вуз.</p>
+        </div>
+        <div class="about-service">
+          <h3>Профиканикулы</h3>
+          <p>Карьерные каникулы в период школьных каникул — знакомство с профессиями в формате интенсива.</p>
+        </div>
+        <div class="about-service">
+          <h3>Мастер-классы</h3>
+          <p>Встречи с представителями предприятий и специалистами отрасли — живой опыт из профессии.</p>
+        </div>
+        <div class="about-service">
+          <h3>Курсы навыков</h3>
+          <p>Профильные программы для первичного освоения рабочих и инженерных компетенций.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="about-panel reveal" style="--reveal-delay: 2;">
+      <h2 class="about-section-title">Профильные курсы</h2>
+      <p class="about-section-sub">Перечень программ постоянно расширяется. Ниже — основные направления.</p>
+      <div class="about-courses">
+        <article class="about-course">
+          <span class="about-course__age">от 12 лет</span>
+          <h4>Автомеханик</h4>
+          <p>От базового курса (сборка учебного двигателя) до продвинутого — работа с узлами и агрегатами автомобиля.</p>
+        </article>
+        <article class="about-course">
+          <span class="about-course__age">от 12 лет</span>
+          <h4>Электрик</h4>
+          <p>Электромонтаж на учебном стенде и основы систем автоматизации.</p>
+        </article>
+        <article class="about-course">
+          <span class="about-course__age">от 12 лет</span>
+          <h4>Проектирование</h4>
+          <p>Аддитивные технологии, прототипирование и инженерное мышление.</p>
+        </article>
+        <article class="about-course">
+          <span class="about-course__age">от 12 лет</span>
+          <h4>Промышленная робототехника</h4>
+          <p>Проектирование, программирование и прототипирование роботизированных систем.</p>
+        </article>
+        <article class="about-course">
+          <span class="about-course__age">от 13 лет</span>
+          <h4>Умный маркетинг</h4>
+          <p>Инструменты маркетинга, исследование рынка, брендинг и защита проекта.</p>
+        </article>
+        <article class="about-course">
+          <span class="about-course__age">от 10 лет</span>
+          <h4>Авиатехнологии</h4>
+          <p>Моделирование, авиаинженерия и беспилотные системы.</p>
+        </article>
+        <article class="about-course">
+          <span class="about-course__age">от 10 лет</span>
+          <h4>Психологическая грамотность</h4>
+          <p>Развитие эмоционального интеллекта и уверенности в выборе жизненного пути.</p>
+        </article>
+      </div>
+    </section>
+
+    <div class="about-page__actions reveal" style="--reveal-delay: 3;">
+      <a href="{% url 'index' %}" class="btn-outline">На главную</a>
+      <a href="{% url 'help_guide' %}" class="btn-primary-tk">Руководство пользователя</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

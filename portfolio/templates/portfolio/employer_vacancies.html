@@ -1,33 +1,33 @@
 {% extends 'base.html' %}
 {% block content %}
-<div style="padding:20px; background:#f8fafc; min-height:calc(100vh - 60px);">
-  <div style="max-width:1000px; margin:0 auto; background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:20px;">
-    <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
-      <h1 style="margin:0;">Мои вакансии</h1>
-      <div style="display:flex; gap:8px;">
-        <a href="{% url 'employer_applications' %}" style="background:#166534; color:#fff; text-decoration:none; border-radius:8px; padding:10px 14px;">Отклики студентов</a>
-        <a href="{% url 'vacancy_create' %}" style="background:#0a2540; color:#fff; text-decoration:none; border-radius:8px; padding:10px 14px;">+ Новая вакансия</a>
+<div class="page-shell">
+  <div class="page-inner">
+    <header class="page-header page-header--row reveal">
+      <h1 class="page-title">Мои вакансии</h1>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <a href="{% url 'employer_applications' %}" class="btn-secondary" style="width:auto;">Отклики участников</a>
+        <a href="{% url 'vacancy_create' %}" class="btn-primary-tk">+ Новая вакансия</a>
       </div>
-    </div>
-    <div style="margin-top:14px; display:grid; gap:10px;">
+    </header>
+
+    <div style="display:grid; gap:12px;">
       {% for vacancy in vacancies %}
-        <div style="border:1px solid #e5e7eb; border-radius:10px; padding:14px;">
-          <h3 style="margin:0 0 6px 0;">{{ vacancy.title }}</h3>
-          <div style="color:#6b7280;">{{ vacancy.get_status_display }} · {{ vacancy.get_employment_type_display }}</div>
-          <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
-            <a href="{% url 'vacancy_detail' vacancy.id %}" style="text-decoration:none; border:1px solid #d1d5db; border-radius:8px; padding:8px 12px;">Открыть</a>
-            <a href="{% url 'vacancy_edit' vacancy.id %}" style="text-decoration:none; border:1px solid #d1d5db; border-radius:8px; padding:8px 12px;">Редактировать</a>
-            <form method="post" action="{% url 'vacancy_delete' vacancy.id %}" onsubmit="return confirm('Удалить вакансию?');">
+        <article class="ui-card reveal" style="--reveal-delay: {{ forloop.counter }};">
+          <h3 style="margin:0 0 6px; color:var(--tk-blue);">{{ vacancy.title }}</h3>
+          <p style="margin:0; color:var(--tk-muted); font-size:14px;">{{ vacancy.get_status_display }} · {{ vacancy.get_employment_type_display }}</p>
+          <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
+            <a href="{% url 'vacancy_detail' vacancy.id %}" class="btn-outline" style="padding:8px 12px; text-decoration:none;">Открыть</a>
+            <a href="{% url 'vacancy_edit' vacancy.id %}" class="btn-outline" style="padding:8px 12px; text-decoration:none;">Редактировать</a>
+            <form method="post" action="{% url 'vacancy_delete' vacancy.id %}" onsubmit="return confirm('Удалить вакансию?');" style="display:inline;">
               {% csrf_token %}
-              <button type="submit" style="border:1px solid #fca5a5; color:#b91c1c; background:#fff; border-radius:8px; padding:8px 12px;">Удалить</button>
+              <button type="submit" class="btn-submit-tk" style="background:#fff; color:var(--tk-red); border:1px solid #fca5a5;">Удалить</button>
             </form>
           </div>
-        </div>
+        </article>
       {% empty %}
-        <p style="color:#6b7280;">Вакансий пока нет.</p>
+        <p class="empty-state">Вакансий пока нет. <a href="{% url 'vacancy_create' %}">Создать первую</a></p>
       {% endfor %}
     </div>
   </div>
 </div>
 {% endblock %}
-

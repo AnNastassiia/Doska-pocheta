@@ -3,7 +3,7 @@
 <div class="auth-form auth-form--wide">
     <div class="auth-form__header">
         <h2>Регистрация</h2>
-        <p class="auth-form__subtitle">Создайте аккаунт работодателя, чтобы размещать вакансии и управлять откликами.</p>
+        <p class="auth-form__subtitle">Создайте аккаунт работодателя, чтобы размещать вакансии и управлять откликами. На указанную почту придёт письмо с логином и паролем — без успешной отправки аккаунт не создаётся.</p>
     </div>
     <form method="post" action="{% url 'signup' %}" novalidate>
         {% csrf_token %}

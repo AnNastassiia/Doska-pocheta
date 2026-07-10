@@ -10,7 +10,7 @@
                     <p style="color:#6b7280;">Просмотр профилей и управление публикацией на доске почёта.</p>
                 </div>
                 <form method="get" style="display:flex; gap:8px; align-items:center;">
-                    <input type="text" name="q" value="{{ q }}" placeholder="Поиск: ФИО, группа, email" style="padding:10px 12px; border:1px solid #d1d5db; border-radius:8px; min-width:260px;">
+                    <input type="text" name="q" value="{{ q }}" placeholder="Поиск: ФИО, специальность, email" style="padding:10px 12px; border:1px solid #d1d5db; border-radius:8px; min-width:260px;">
                     <button class="btn-primary" type="submit" style="width:auto;">Найти</button>
                 </form>
             </div>
@@ -27,7 +27,7 @@
                                 {% endif %}
                                 <div>
                                     <h2 style="margin:0 0 6px 0;">{{ student.full_name }}</h2>
-                                    <p style="margin:0;"><strong>Группа:</strong> {{ student.course }}</p>
+                                    <p style="margin:0;"><strong>Специальность:</strong> {{ student.specialty|default:"не указана" }}</p>
                                     <p style="margin:4px 0 0;"><strong>Email:</strong> {{ student.user.email }}</p>
                                     <p style="margin:8px 0 0;">
                                         <strong>Статус:</strong>
@@ -43,6 +43,7 @@
                             </div>
                             <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
                                 <a href="{% url 'student_profile' student.id %}" class="action-btn" style="text-decoration:none;">Открыть профиль</a>
+                                <a href="{% url 'manager_edit_student' student.id %}" class="action-btn" style="text-decoration:none;">Редактировать данные</a>
                                 {% if student.is_approved %}
                                     <form method="post" action="{% url 'manager_unpublish_student' student.id %}">
                                         {% csrf_token %}

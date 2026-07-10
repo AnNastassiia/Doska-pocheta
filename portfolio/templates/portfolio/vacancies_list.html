@@ -1,43 +1,51 @@
 {% extends 'base.html' %}
 {% block content %}
-<div style="padding:20px; background:#f8fafc; min-height:calc(100vh - 60px);">
-  <div style="max-width:1100px; margin:0 auto;">
-    <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-end; flex-wrap:wrap;">
+<div class="page-shell">
+  <div class="page-inner">
+    <header class="page-header page-header--row reveal">
       <div>
-        <h1 style="margin:0;">Вакансии и стажировки</h1>
-        <p style="color:#6b7280;">Открытые предложения партнеров.</p>
+        <h1 class="page-title">Вакансии и стажировки</h1>
+        <p class="page-subtitle">Открытые предложения партнёров центра «Траектория».</p>
       </div>
       {% if user.is_authenticated and user.employer %}
-        <a href="{% url 'employer_vacancies' %}" style="background:#0a2540; color:#fff; text-decoration:none; border-radius:8px; padding:10px 14px;">Мои вакансии</a>
+        <a href="{% url 'employer_vacancies' %}" class="btn-primary-tk">Мои вакансии</a>
       {% endif %}
-    </div>
+    </header>
 
-    <form method="get" style="display:grid; grid-template-columns:2fr 1fr 1fr 1fr auto; gap:8px; margin-top:12px;">
-      <input type="text" name="q" value="{{ q }}" placeholder="Поиск по названию/описанию" style="padding:10px; border:1px solid #d1d5db; border-radius:8px;">
-      <input type="text" name="region" value="{{ region }}" placeholder="Регион" style="padding:10px; border:1px solid #d1d5db; border-radius:8px;">
-      <input type="text" name="stack" value="{{ stack }}" placeholder="Стек" style="padding:10px; border:1px solid #d1d5db; border-radius:8px;">
-      <select name="type" style="padding:10px; border:1px solid #d1d5db; border-radius:8px;">
+    <form method="get" class="page-filter reveal" style="--reveal-delay: 1;">
+      <input type="text" name="q" value="{{ q }}" placeholder="Поиск по названию или описанию" class="form-control-tk">
+      <input type="text" name="region" value="{{ region }}" placeholder="Регион" class="form-control-tk">
+      <select name="type" class="form-control-tk">
         <option value="">Любой формат</option>
         {% for value, label in emp_types %}
           <option value="{{ value }}" {% if emp_type == value %}selected{% endif %}>{{ label }}</option>
         {% endfor %}
       </select>
-      <button type="submit" style="background:#0a2540; color:#fff; border:none; border-radius:8px; padding:10px 12px;">Фильтр</button>
+      <select name="specialty" class="form-control-tk">
+        <option value="">Все специальности</option>
+        {% for specialty_name in specialties %}
+          <option value="{{ specialty_name|urlencode }}" {% if specialty == specialty_name %}selected{% endif %}>{{ specialty_name }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn-submit-tk">Найти</button>
     </form>
 
-    <div style="margin-top:16px; display:grid; gap:12px;">
+    <div style="margin-top:18px; display:grid; gap:14px;">
       {% for vacancy in vacancies %}
-        <div style="background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:16px;">
-          <h3 style="margin:0 0 6px 0;"><a href="{% url 'vacancy_detail' vacancy.id %}" style="text-decoration:none; color:#0a2540;">{{ vacancy.title }}</a></h3>
-          <div style="color:#6b7280; font-size:14px;">{{ vacancy.employer.company_name }} · {{ vacancy.get_employment_type_display }} · {{ vacancy.region|default:"Регион не указан" }}</div>
-          <p style="margin:8px 0 10px 0;">{{ vacancy.description|truncatewords:35 }}</p>
-          <a href="{% url 'vacancy_detail' vacancy.id %}" style="display:inline-block; text-decoration:none; background:#0a2540; color:#fff; border-radius:8px; padding:10px 14px;">Узнать подробнее</a>
-        </div>
+        <article class="ui-card reveal" style="--reveal-delay: {{ forloop.counter }};">
+          <h3 style="margin:0 0 6px 0;">
+            <a href="{% url 'vacancy_detail' vacancy.id %}">{{ vacancy.title }}</a>
+          </h3>
+          <div style="color:var(--tk-muted); font-size:14px;">
+            {{ vacancy.employer.company_name }} · {{ vacancy.get_employment_type_display }} · {{ vacancy.region|default:"Регион не указан" }}
+          </div>
+          <p style="margin:10px 0 12px; line-height:1.55;">{{ vacancy.description|truncatewords:35 }}</p>
+          <a href="{% url 'vacancy_detail' vacancy.id %}" class="btn-primary-tk">Узнать подробнее</a>
+        </article>
       {% empty %}
-        <p style="color:#6b7280;">Вакансий пока нет.</p>
+        <p class="empty-state">Вакансий по выбранным фильтрам пока нет.</p>
       {% endfor %}
     </div>
   </div>
 </div>
 {% endblock %}
-

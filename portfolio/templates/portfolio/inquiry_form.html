@@ -1,25 +1,46 @@
 {% extends 'base.html' %}
 {% block content %}
-<div style="padding:20px; background:#f8fafc; min-height:calc(100vh - 60px);">
-  <div style="max-width:700px; margin:0 auto; background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:24px;">
-    <h1 style="margin-top:0;">Предложить вакансию</h1>
-    <p>Отправьте предложение студенту о вакансии. Вы можете привязать предложение к одной из своих опубликованных вакансий или просто написать сообщение.</p>
-    <form method="post" style="display:grid; gap:16px; margin-top:20px;">
+<div class="page-shell">
+  <div class="page-inner page-inner--narrow">
+    <header class="page-header reveal">
+      <h1 class="page-title">Предложить вакансию</h1>
+      <p class="page-subtitle">Отправьте приглашение участнику — можно привязать вакансию или написать свободное сообщение.</p>
+    </header>
+    <form method="post" class="page-panel reveal" style="--reveal-delay: 1; display:grid; gap:16px;">
       {% csrf_token %}
-      <label>
-        <span style="font-weight:600;">Вакансия (необязательно)</span><br>
+      <div class="form-field">
+        <label for="{{ form.vacancy.id_for_label }}">Вакансия (необязательно)</label>
         {{ form.vacancy }}
-      </label>
-      <label>
-        <span style="font-weight:600;">Сообщение работодателя</span><br>
+      </div>
+      <div class="form-field">
+        <label for="{{ form.message.id_for_label }}">Сообщение работодателя</label>
         {{ form.message }}
-      </label>
+      </div>
       {% if form.non_field_errors %}
-        <div style="color:#b91c1c;">{{ form.non_field_errors }}</div>
+        <div class="alert-tk alert-tk--danger">{{ form.non_field_errors }}</div>
       {% endif %}
-      <button type="submit" class="btn-primary" style="width:fit-content;">Отправить приглашение</button>
-      <a href="{% url 'student_profile' student.id %}" class="btn-secondary" style="display:inline-block; margin-top:8px;">Вернуться к профилю студента</a>
+      <div style="display:flex; flex-wrap:wrap; gap:10px;">
+        <button type="submit" class="btn-submit-tk">Отправить приглашение</button>
+        <a href="{% url 'student_profile' student.id %}" class="btn-outline" style="padding:10px 14px; text-decoration:none;">← К профилю</a>
+      </div>
     </form>
   </div>
 </div>
+<style>
+.page-panel .form-field select,
+.page-panel .form-field textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 12px;
+    border: 1px solid var(--tk-border);
+    border-radius: 10px;
+    font-family: inherit;
+}
+.page-panel .form-field label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: var(--tk-blue);
+}
+</style>
 {% endblock %}

@@ -1,8 +1,9 @@
 {% extends 'base.html' %}
 {% block content %}
-<div style="padding:20px; background:#f8fafc; min-height:calc(100vh - 60px);">
-  <div style="max-width:1000px; margin:0 auto; background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:24px;">
-    <h1 style="margin-top:0;">Исходящие приглашения</h1>
+<div class="page-shell">
+  <div class="page-inner">
+    <header class="page-header reveal"><h1 class="page-title">Исходящие приглашения</h1></header>
+    <div class="page-panel reveal" style="--reveal-delay: 1;">
     {% if inquiries %}
       {% for status, status_name in status_groups %}
         <h2 style="margin-top:32px; margin-bottom:16px;">{{ status_name }}</h2>
@@ -12,7 +13,7 @@
           <div style="display:grid; gap:18px;">
             {% for inquiry in inquiries %}
               {% if inquiry.status == status %}
-                <div style="border:1px solid #e5e7eb; border-radius:12px; padding:18px; background:#ffffff;">
+                <article class="ui-card" style="margin-bottom:14px;">
                   <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px; align-items:flex-start;">
                     <div>
                       <h3 style="margin:0 0 8px 0;">{{ inquiry.student.full_name }}</h3>
@@ -38,15 +39,16 @@
                   <div style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap;">
                     <a href="{% url 'student_profile' inquiry.student.id %}" class="btn-secondary" style="text-decoration:none; padding:10px 14px;">Перейти в профиль студента</a>
                   </div>
-                </div>
+                </article>
               {% endif %}
             {% endfor %}
           </div>
         {% endif %}
       {% endfor %}
     {% else %}
-      <p style="color:#6b7280;">У вас пока нет приглашений студентам.</p>
+      <p class="empty-state">У вас пока нет приглашений студентам.</p>
     {% endif %}
+    </div>
   </div>
 </div>
 {% endblock %}

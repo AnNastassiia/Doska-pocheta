@@ -3,19 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Доска почёта Академии-ТОП</title>
+    <title>Траектория — доска почёта</title>
     <link rel="stylesheet" href="/static/style.css">
-    <link rel="icon" type="image/png" href="/static/logo.png">
+    <link rel="stylesheet" href="/static/interactions.css">
+    <link rel="icon" type="image/png" href="/static/traektoriya-icon.png">
     <style>
         .app-shell {
             display: grid;
             grid-template-columns: 260px 1fr;
             min-height: 100vh;
-            background: #f3eef4;
+            background: transparent;
         }
         .app-sidebar {
-            background: #f7f3f8;
-            border-right: 1px solid #e7e0ea;
+            background: var(--tk-white, #fff);
+            border-right: 1px solid var(--tk-border, #e2e8f0);
             padding: 18px 14px;
             position: sticky;
             top: 0;
@@ -23,10 +24,21 @@
             box-sizing: border-box;
         }
         .app-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 0 0 14px 4px;
+            text-decoration: none;
+        }
+        .app-brand img {
+            height: 40px;
+            width: auto;
+        }
+        .app-brand span {
             font-weight: 800;
-            color: #3a3142;
-            margin: 0 0 14px 6px;
-            letter-spacing: .2px;
+            color: var(--tk-blue, #1D3A8A);
+            font-size: 15px;
+            line-height: 1.2;
         }
         .user-card {
             background: #fff;
@@ -47,12 +59,12 @@
         }
         .user-card .name {
             font-weight: 700;
-            color: #332a39;
+            color: var(--tk-text, #1e293b);
             font-size: 14px;
             margin: 0;
         }
         .user-card .role {
-            color: #7f7288;
+            color: var(--tk-muted, #64748b);
             font-size: 12px;
             margin: 2px 0 0 0;
         }
@@ -62,18 +74,20 @@
         }
         .sidebar-link {
             text-decoration: none;
-            color: #4b3f54;
+            color: var(--tk-text, #1e293b);
             padding: 10px 12px;
             border-radius: 10px;
             font-weight: 600;
             font-size: 14px;
         }
         .sidebar-link:hover {
-            background: #ebe4ef;
+            background: var(--tk-blue-soft, #eef2fb);
+            color: var(--tk-blue, #1D3A8A);
         }
         .app-main {
             padding: 18px;
             box-sizing: border-box;
+            background: transparent;
         }
         .topbar {
             height: 54px;
@@ -89,7 +103,7 @@
         .notif-icon-btn {
             position: relative;
             text-decoration: none;
-            color: #4b3f54;
+            color: var(--tk-blue, #1D3A8A);
             font-size: 20px;
             line-height: 1;
         }
@@ -97,7 +111,7 @@
             position: absolute;
             top: -6px;
             right: -8px;
-            background: #ef4444;
+            background: var(--tk-red, #E31E24);
             color: #fff;
             border-radius: 999px;
             font-size: 10px;
@@ -105,16 +119,35 @@
             font-weight: 800;
         }
         .public-topnav {
-            background: #0a2540;
-            color: #fff;
+            background: rgba(255, 255, 255, 0.88);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            color: var(--tk-blue, #1D3A8A);
             padding: 12px 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            border-bottom: 3px solid rgba(227, 30, 36, 0.35);
+            box-shadow: 0 2px 12px rgba(29, 58, 138, 0.05);
         }
         .public-topnav a {
-            color: #fff;
+            color: var(--tk-blue, #1D3A8A);
             text-decoration: none;
+            font-weight: 600;
+        }
+        .public-topnav a:hover {
+            color: var(--tk-red, #E31E24);
+        }
+        .public-topnav .public-brand {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 800;
+            font-size: 18px;
+        }
+        .public-topnav .public-brand img {
+            height: 36px;
+            width: auto;
         }
         @media (max-width: 900px) {
             .app-shell {
@@ -131,25 +164,20 @@
     {% if user.is_authenticated %}
         <div class="app-shell">
             <aside class="app-sidebar">
-                <div class="app-brand">Doska Ecosystem</div>
+                <a class="app-brand" href="/">
+                    <img src="/static/traektoriya-icon.png" alt="Траектория">
+                    <span>Траектория</span>
+                </a>
                 <div class="user-card">
                     <img src="/static/default-avatar.svg" alt="Аватар">
                     <div>
-                        <p class="name">{{ user.username }}</p>
-                        <p class="role">
-                            {% if user.is_staff %}
-                                Менеджер / Админ
-                            {% elif user.employer %}
-                                Работодатель
-                            {% else %}
-                                Студент
-                            {% endif %}
-                        </p>
+                        <p class="name">{% firstof sidebar_display_name user.username %}</p>
+                        <p class="role">{{ sidebar_role_label }}</p>
                     </div>
                 </div>
                 <nav class="sidebar-nav">
                     <a class="sidebar-link" href="/">Главная</a>
-                    {% if user.is_staff or user.manager_profile %}
+                    {% if sidebar_show_manager_links %}
                         <a class="sidebar-link" href="/manager/dashboard/">Кабинет менеджера</a>
                         <a class="sidebar-link" href="{% url 'manager_students_all' %}">Студенты</a>
                         <a class="sidebar-link" href="{% url 'manager_employers_all' %}">Работодатели</a>
@@ -157,6 +185,7 @@
                         <a class="sidebar-link" href="/dashboard/">Мой кабинет</a>
                     {% endif %}
                     <a class="sidebar-link" href="{% url 'vacancies_list' %}">Вакансии</a>
+                    <a class="sidebar-link" href="{% url 'about_organization' %}">Об организации</a>
                     <a class="sidebar-link" href="{% url 'notifications' %}">Уведомления</a>
                     <a class="sidebar-link" href="{% url 'help_guide' %}">Руководство</a>
                     <a class="sidebar-link" href="/logout/">Выход</a>
@@ -173,9 +202,13 @@
                 </div>
         {% else %}
         <nav class="public-topnav">
-            <a href="/" style="font-weight:bold; font-size:18px;">Академия-ТОП</a>
-            <div style="display:flex; gap:15px;">
+            <a href="/" class="public-brand">
+                <img src="/static/traektoriya-icon.png" alt="Траектория">
+                <span>Траектория</span>
+            </a>
+            <div style="display:flex; gap:15px; flex-wrap:wrap; align-items:center;">
                 <a href="{% url 'vacancies_list' %}">Вакансии</a>
+                <a href="{% url 'about_organization' %}">Об организации</a>
                 <a href="{% url 'help_guide' %}">Руководство</a>
                 <a href="/signup/">Регистрация</a>
                 <a href="/login/">Вход</a>
@@ -202,7 +235,7 @@
             if (!root || !items.length) return;
 
             const colors = {
-                info: { bg: '#0a2540', border: '#0a2540' },
+                info: { bg: '#1D3A8A', border: '#1D3A8A' },
                 success: { bg: '#166534', border: '#166534' },
                 warning: { bg: '#92400e', border: '#92400e' },
                 danger: { bg: '#b91c1c', border: '#b91c1c' },
@@ -239,8 +272,8 @@
     {% if user.is_authenticated %}
     <div id="onboarding-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:9998;">
         <div style="max-width:640px; margin:8vh auto; background:#fff; border-radius:14px; padding:20px;">
-            <h2 style="margin-top:0;">Добро пожаловать в экосистему выпускника</h2>
-            <p id="onboarding-text" style="color:#374151;">Здесь вы можете работать с ключевыми модулями платформы.</p>
+            <h2 style="margin-top:0;">Добро пожаловать в «Траекторию»</h2>
+            <p id="onboarding-text" style="color:#374151;">Платформа центра «Траектория» для школьников, студентов и работодателей.</p>
             <ul style="color:#4b5563; line-height:1.5;">
                 <li>Профиль и приватность в кабинете</li>
                 <li>Вакансии, отклики и запросы контактов</li>
@@ -248,7 +281,7 @@
             </ul>
             <div style="display:flex; gap:10px; justify-content:flex-end;">
                 <button id="onboarding-close" style="padding:10px 14px; border:1px solid #d1d5db; border-radius:8px; background:#fff; cursor:pointer;">Закрыть</button>
-                <a href="{% url 'help_guide' %}" style="padding:10px 14px; border-radius:8px; background:#0a2540; color:#fff; text-decoration:none;">Открыть руководство</a>
+                <a href="{% url 'help_guide' %}" style="padding:10px 14px; border-radius:8px; background:#1D3A8A; color:#fff; text-decoration:none;">Открыть руководство</a>
             </div>
         </div>
     </div>
@@ -275,5 +308,6 @@
     })();
     </script>
     {% endif %}
+    <script src="/static/interactions.js" defer></script>
 </body>
 </html>

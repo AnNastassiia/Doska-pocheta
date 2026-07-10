@@ -1,0 +1,193 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="manager-page">
+    <main class="manager-page__inner">
+        <div class="dashboard-content">
+            <a href="{% url 'manager_student_applications' %}" style="color: var(--tk-blue); text-decoration: none; margin-bottom: 16px; display: inline-block;">← Назад к откликам</a>
+
+            <h1 style="color: var(--tk-blue); margin-bottom: 8px;">Отклик студента</h1>
+
+            <section class="profile-section">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; margin-bottom: 24px;">
+                    <!-- Информация о вакансии -->
+                    <div>
+                        <h2 style="margin-bottom: 16px; color: var(--tk-blue);">Вакансия</h2>
+                        <p><strong>Название:</strong> {{ application.vacancy.title }}</p>
+                        <p><strong>Компания:</strong> {{ application.vacancy.employer.company_name }}</p>
+                        <p><strong>Формат:</strong> {{ application.vacancy.get_employment_type_display }}</p>
+                        <p><strong>Регион:</strong> {{ application.vacancy.region|default:"не указан" }}</p>
+                        
+                        <div style="margin-top: 12px; padding: 12px; background: #f9fafb; border-radius: 4px;">
+                            <strong style="display: block; margin-bottom: 8px;">Описание:</strong>
+                            <p style="margin: 0; white-space: pre-wrap; font-size: 14px;">{{ application.vacancy.description }}</p>
+                        </div>
+
+                        {% if application.vacancy.requirements %}
+                            <div style="margin-top: 12px; padding: 12px; background: #f9fafb; border-radius: 4px;">
+                                <strong style="display: block; margin-bottom: 8px;">Требования:</strong>
+                                <p style="margin: 0; white-space: pre-wrap; font-size: 14px;">{{ application.vacancy.requirements }}</p>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Информация о студенте -->
+                    <div>
+                        <h2 style="margin-bottom: 16px; color: var(--tk-blue);">Студент</h2>
+                        <p><strong>ФИО:</strong> {{ application.student.full_name }}</p>
+                        <p><strong>Специальность:</strong> {{ application.student.specialty|default:"не указана" }}</p>
+                        <p><strong>Статус поиска:</strong> {{ application.student.get_job_search_status_display }}</p>
+                        
+                        <div style="margin-top: 12px;">
+                            <strong style="display: block; margin-bottom: 8px;">Контакты:</strong>
+                            <ul style="margin: 0; padding-left: 20px;">
+                                {% if application.student.contact_email %}
+                                    <li>Email: {{ application.student.contact_email }}</li>
+                                {% endif %}
+                                {% if application.student.phone %}
+                                    <li>Телефон: {{ application.student.phone }}</li>
+                                {% endif %}
+                                {% if application.student.telegram %}
+                                    <li>Telegram: {{ application.student.telegram }}</li>
+                                {% endif %}
+                                {% if application.student.whatsapp %}
+                                    <li>WhatsApp: {{ application.student.whatsapp }}</li>
+                                {% endif %}
+                            </ul>
+                        </div>
+
+                        <a href="{% url 'student_profile' application.student.id %}" class="btn-primary" style="display: inline-block; margin-top: 16px; padding: 10px 16px; text-decoration: none;">Открыть полный профиль</a>
+                    </div>
+
+                    <!-- Контакты работодателя -->
+                    <div>
+                        <h2 style="margin-bottom: 16px; color: #1f2937;">Работодатель</h2>
+                        <p><strong>Компания:</strong> {{ application.vacancy.employer.company_name }}</p>
+                        <p><strong>Контактное лицо:</strong> {{ application.vacancy.employer.contact_person }}</p>
+                        <p><strong>Email:</strong> {{ application.vacancy.employer.user.email }}</p>
+                        <p><strong>Телефон:</strong> {{ application.vacancy.employer.phone|default:"не указан" }}</p>
+                        <p><strong>Сфера деятельности:</strong> {{ application.vacancy.employer.sector }}</p>
+                        {% if application.vacancy.employer.website %}
+                            <p><strong>Сайт:</strong> <a href="{{ application.vacancy.employer.website }}" target="_blank" rel="noopener">{{ application.vacancy.employer.website }}</a></p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Статус отклика -->
+                <div style="margin: 24px 0; padding: 16px; background: #f3f4f6; border-radius: 8px;">
+                    <h3 style="margin-top: 0;">Статус отклика</h3>
+                    <div style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
+                        <span class="status-badge" style="
+                            padding: 8px 16px;
+                            border-radius: 20px;
+                            font-size: 14px;
+                            font-weight: 500;
+                            {% if application.status == 'submitted' %}
+                                background: #fef3c7;
+                                color: #92400e;
+                            {% elif application.status == 'reviewing' %}
+                                background: #dbeafe;
+                                color: #0c4a6e;
+                            {% elif application.status == 'accepted' %}
+                                background: #dcfce7;
+                                color: #166534;
+                            {% else %}
+                                background: #fee2e2;
+                                color: #991b1b;
+                            {% endif %}
+                        ">
+                            {{ application.get_status_display }}
+                        </span>
+                        <span style="color: var(--tk-muted);">Отправлен {{ application.created_at|date:"d.m.Y в H:i" }}</span>
+                        {% if application.updated_at != application.created_at %}
+                            <span style="color: var(--tk-muted);">Обновлен {{ application.updated_at|date:"d.m.Y в H:i" }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Сообщение студента -->
+                {% if application.message %}
+                    <div style="margin: 24px 0; padding: 16px; background: var(--tk-blue-soft); border-left: 4px solid var(--tk-blue); border-radius: 4px;">
+                        <h3 style="margin-top: 0; color: var(--tk-blue);">Сообщение студента</h3>
+                        <p style="margin: 0; white-space: pre-wrap;">{{ application.message }}</p>
+                    </div>
+                {% endif %}
+
+                <!-- Ответ работодателя -->
+                {% if application.employer_message %}
+                    <div style="margin: 24px 0; padding: 16px; background: #f0fdf4; border-left: 4px solid #10b981; border-radius: 4px;">
+                        <h3 style="margin-top: 0;">Ответ работодателя</h3>
+                        <p style="margin: 0; white-space: pre-wrap;">{{ application.employer_message }}</p>
+                    </div>
+                {% endif %}
+
+                <!-- История изменений -->
+                <div style="margin-top: 24px; padding: 16px; background: var(--tk-blue-soft); border-left: 4px solid var(--tk-blue); border-radius: 8px;">
+                    <h3 style="margin-top: 0; color: var(--tk-blue);">История</h3>
+                    <ul style="margin: 0; padding-left: 20px;">
+                        <li>Отклик создан: {{ application.created_at|date:"d.m.Y в H:i" }}</li>
+                        {% if application.updated_at != application.created_at %}
+                            <li>Последнее изменение: {{ application.updated_at|date:"d.m.Y в H:i" }}</li>
+                        {% endif %}
+                        {% if application.status == 'accepted' %}
+                            <li style="color: #10b981; font-weight: 500;">Статус изменен на "Принято"</li>
+                        {% elif application.status == 'rejected' %}
+                            <li style="color: #ef4444; font-weight: 500;">Статус изменен на "Отклонено"</li>
+                        {% elif application.status == 'reviewing' %}
+                            <li style="color: #0c4a6e; font-weight: 500;">Статус изменен на "На рассмотрении"</li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Быстрые действия -->
+            <div style="margin-top: 24px; padding: 16px; background: var(--tk-blue-soft); border-left: 4px solid var(--tk-blue); border-radius: 8px;">
+                <h3 style="margin-top: 0; color: var(--tk-blue);">Быстрые действия</h3>
+                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                    <a href="{% url 'student_profile' application.student.id %}" class="btn-primary-tk" style="padding: 10px 16px; text-decoration: none; display: inline-block;">👤 Профиль студента</a>
+                    <a href="mailto:{{ application.student.contact_email|default:application.student.user.email }}" class="btn-primary-tk" style="padding: 10px 16px; text-decoration: none; display: inline-block; background: #10b981;">✉️ Email студенту</a>
+                    {% if application.vacancy.employer.phone %}
+                        <a href="tel:{{ application.vacancy.employer.phone }}" class="btn-primary-tk" style="padding: 10px 16px; text-decoration: none; display: inline-block; background: #8b5cf6;">📞 Позвонить работодателю</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<style>
+.profile-section {
+    padding: 20px;
+    margin: 16px 0;
+    border: 1px solid var(--tk-border);
+    border-radius: 8px;
+    background: var(--tk-white);
+}
+
+.btn-primary-tk {
+    background: var(--tk-blue);
+    color: var(--tk-white);
+    padding: 10px 16px;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-primary-tk:hover {
+    background: var(--tk-blue-dark);
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+</style>
+
+{% endblock %}

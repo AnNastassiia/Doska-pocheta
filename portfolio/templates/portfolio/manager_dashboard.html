@@ -1,33 +1,43 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="dashboard-wrapper">
-    <main class="dashboard-main">
+<div class="manager-page">
+    <main class="manager-page__inner">
         <div class="dashboard-content">
-            <h1>Кабинет менеджера</h1>
-            <p style="color:#6b7280;">Здесь вы работаете со студентами, работодателями и модерацией профилей.</p>
+            <h1 class="reveal">Кабинет менеджера</h1>
+            <p class="reveal" style="color:#6b7280; --reveal-delay: 1;">Здесь вы работаете со студентами, работодателями и модерацией профилей.</p>
 
             <div class="manager-cards">
-                <div class="manager-card">
+                <div class="manager-card reveal" style="--reveal-delay: 1;">
                     <h3>Студенты на модерации</h3>
                     <p class="manager-metric">{{ pending_students }}</p>
                     <a href="{% url 'manager_students_pending' %}" class="btn-primary manager-btn">Открыть</a>
                 </div>
-                <div class="manager-card">
+                <div class="manager-card reveal" style="--reveal-delay: 2;">
                     <h3>Все студенты</h3>
                     <p style="color:#6b7280;">Просмотр профилей и снятие с доски почёта.</p>
                     <a href="{% url 'manager_students_all' %}" class="btn-primary manager-btn">Открыть список</a>
                 </div>
-                <div class="manager-card">
+                <div class="manager-card reveal" style="--reveal-delay: 3;">
                     <h3>Работодатели на проверке</h3>
                     <p class="manager-metric">{{ pending_employers }}</p>
                     <a href="{% url 'manager_employers_pending' %}" class="btn-primary manager-btn">Открыть</a>
                 </div>
-                <div class="manager-card">
+                <div class="manager-card reveal" style="--reveal-delay: 4;">
                     <h3>Все работодатели</h3>
                     <p style="color:#6b7280;">Включение/отключение доступа к контактам.</p>
                     <a href="{% url 'manager_employers_all' %}" class="btn-primary manager-btn">Открыть список</a>
                 </div>
-                <div class="manager-card">
+                <div class="manager-card reveal" style="--reveal-delay: 5;">
+                    <h3>Запросы контактов</h3>
+                    <p class="manager-metric">{{ pending_contact_requests }}</p>
+                    <a href="{% url 'manager_contact_requests' %}" class="btn-primary manager-btn">Открыть</a>
+                </div>
+                <div class="manager-card reveal" style="--reveal-delay: 6;">
+                    <h3>Отклики студентов</h3>
+                    <p class="manager-metric">{{ pending_applications }}</p>
+                    <a href="{% url 'manager_student_applications' %}" class="btn-primary manager-btn">Открыть</a>
+                </div>
+                <div class="manager-card reveal" style="--reveal-delay: 7;">
                     <h3>Создание студента</h3>
                     <p>Создайте аккаунт, логин и пароль будут отправлены на почту студента.</p>
                     <a href="{% url 'manager_create_student' %}" class="btn-primary manager-btn">Создать студента</a>
@@ -46,7 +56,7 @@
                 <ul>
                     {% for student in recent_students %}
                         <li>
-                            <strong>{{ student.full_name }}</strong> — {{ student.course }}
+                            <strong>{{ student.full_name }}</strong> — {{ student.specialty|default:"специальность не указана" }}
                             {% if student.is_approved %}
                                 <span style="color:#1f7d3d;">(одобрен)</span>
                             {% else %}
@@ -76,25 +86,58 @@
                     {% endfor %}
                 </ul>
             </section>
+
+            <section class="profile-section">
+                <h2>Последние запросы контактов</h2>
+                {% if recent_contact_requests %}
+                    <ul>
+                        {% for request in recent_contact_requests %}
+                            <li>
+                                <strong>{{ request.employer.company_name }}</strong> интересуется <strong>{{ request.student.full_name }}</strong>
+                                {% if request.status == 'pending_manager' %}
+                                    <span style="background: #fef3c7; color: #92400e; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 500;">(ожидает решения)</span>
+                                {% elif request.status == 'approved_by_manager' %}
+                                    <span style="background: #dcfce7; color: #166534; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 500;">(одобрено)</span>
+                                {% else %}
+                                    <span style="background: #fee2e2; color: #991b1b; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 500;">(отклонено)</span>
+                                {% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p style="color: #6b7280;">Пока нет запросов контактов.</p>
+                {% endif %}
+                <a href="{% url 'manager_contact_requests' %}" style="display: inline-block; margin-top: 12px; color: #3b82f6; text-decoration: none; font-weight: 500;">Все запросы →</a>
+            </section>
+
+            <section class="profile-section">
+                <h2>Последние отклики студентов</h2>
+                {% if recent_applications %}
+                    <ul>
+                        {% for app in recent_applications %}
+                            <li>
+                                <strong>{{ app.student.full_name }}</strong> откликнулся на вакансию <strong>{{ app.vacancy.title }}</strong> от <strong>{{ app.vacancy.employer.company_name }}</strong>
+                                {% if app.status == 'submitted' %}
+                                    <span style="background: #fef3c7; color: #92400e; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 500;">(новый)</span>
+                                {% elif app.status == 'accepted' %}
+                                    <span style="background: #dcfce7; color: #166534; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 500;">(принят)</span>
+                                {% else %}
+                                    <span style="background: #fee2e2; color: #991b1b; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 500;">(отклонен)</span>
+                                {% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p style="color: #6b7280;">Пока нет откликов на вакансии.</p>
+                {% endif %}
+            </section>
         </div>
     </main>
 </div>
 
 <style>
-.dashboard-wrapper {
-    padding: 20px;
-    background: #f8fafc;
-    min-height: calc(100vh - 60px);
-}
-.dashboard-main {
-    max-width: 1200px;
-    margin: 0 auto;
-    background:#fff;
-    border-radius:12px;
-    padding:32px;
-}
 .profile-section {
-    border-top: 1px solid #e5e7eb;
+    border-top: 1px solid var(--tk-border);
     padding-top: 24px;
     margin-top: 24px;
 }
@@ -104,17 +147,24 @@
     gap:16px;
     margin:24px 0;
 }
-.manager-card {
+.manager-card,
+.manager-card-link {
     background:#fff;
     border:1px solid #e5e7eb;
     border-radius:12px;
     padding:20px;
+    display:block;
+    color:inherit;
+    text-decoration:none;
+}
+.manager-card-link:hover {
+    box-shadow:0 4px 16px rgba(0,0,0,0.08);
 }
 .manager-metric {
     font-size:32px;
     font-weight:700;
     margin:12px 0;
-    color:#0a2540;
+    color: var(--tk-blue);
 }
 .manager-btn {
     display:inline-block;

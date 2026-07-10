@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="auth-form auth-form--wide">
+    <h2>Редактирование данных студента</h2>
+    <p style="margin-top:-6px; color:#374151;">
+        Изменяются только данные, которые заполняет менеджер при создании аккаунта.
+    </p>
+
+    <form method="post" novalidate>
+        {% csrf_token %}
+        {% if form.errors %}
+            <div class="form-errors">
+                {{ form.non_field_errors }}
+                {{ form.errors }}
+            </div>
+        {% endif %}
+        <div class="mb-3">{{ form.email.label_tag }}{{ form.email }}</div>
+        <div class="mb-3">{{ form.full_name.label_tag }}{{ form.full_name }}</div>
+        <div class="mb-3">{{ form.specialty.label_tag }}{{ form.specialty }}</div>
+        <div class="mb-3">{{ form.birth_date.label_tag }}{{ form.birth_date }}</div>
+
+        <div id="parent-fields" style="{% if not is_minor %}display:none;{% endif %} padding:12px; background:#fffbeb; border:1px solid #fcd34d; border-radius:8px; margin-bottom:12px;">
+            <p style="margin:0 0 10px 0; font-size:13px; color:#92400e;">Если студент несовершеннолетний, заполните контакты законного представителя.</p>
+            <div class="mb-3">{{ form.parent_phone.label_tag }}{{ form.parent_phone }}</div>
+            <div class="mb-3">{{ form.parent_email.label_tag }}{{ form.parent_email }}</div>
+        </div>
+
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button type="submit">Сохранить изменения</button>
+            <a href="{% url 'manager_students_all' %}" class="btn-outline" style="padding:10px 14px; text-decoration:none;">Отмена</a>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const birthInput = document.querySelector('input[name="birth_date"]');
+    const parentBlock = document.getElementById('parent-fields');
+    if (!birthInput || !parentBlock) return;
+    const toggleParentFields = () => {
+        const value = birthInput.value;
+        if (!value) {
+            parentBlock.style.display = 'none';
+            return;
+        }
+        const birth = new Date(value + 'T00:00:00');
+        const today = new Date();
+        let age = today.getFullYear() - birth.getFullYear();
+        const monthDiff = today.getMonth() - birth.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+            age -= 1;
+        }
+        parentBlock.style.display = age < 18 ? 'block' : 'none';
+    };
+    birthInput.addEventListener('change', toggleParentFields);
+    toggleParentFields();
+});
+</script>
+{% endblock %}

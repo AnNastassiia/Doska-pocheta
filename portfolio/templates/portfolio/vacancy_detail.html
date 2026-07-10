@@ -1,31 +1,36 @@
 {% extends 'base.html' %}
 {% block content %}
-<div style="padding:20px; background:#f8fafc; min-height:calc(100vh - 60px);">
-  <div style="max-width:900px; margin:0 auto; background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:24px;">
-    <h1 style="margin-top:0;">{{ vacancy.title }}</h1>
-    <p style="color:#6b7280;">{{ vacancy.employer.company_name }} · {{ vacancy.get_employment_type_display }} · {{ vacancy.region|default:"Регион не указан" }}</p>
-    <h3>Описание</h3>
-    <p style="white-space:pre-wrap;">{{ vacancy.description }}</p>
-    {% if vacancy.requirements %}
-      <h3>Требования</h3>
-      <p style="white-space:pre-wrap;">{{ vacancy.requirements }}</p>
-    {% endif %}
-    {% if vacancy.tech_stack %}
-      <p><strong>Стек:</strong> {{ vacancy.tech_stack }}</p>
-    {% endif %}
+<div class="page-shell">
+  <div class="page-inner page-inner--narrow">
+    <article class="page-panel reveal">
+      <p style="margin:0 0 12px;"><a href="{% url 'vacancies_list' %}" class="link-btn">← К списку вакансий</a></p>
+      <h1 class="page-title" style="font-size:1.5rem;">{{ vacancy.title }}</h1>
+      <p class="page-subtitle" style="margin-bottom:20px;">
+        {{ vacancy.employer.company_name }} · {{ vacancy.get_employment_type_display }} · {{ vacancy.region|default:"Регион не указан" }}
+      </p>
 
-    {% if user.is_authenticated and can_apply %}
-      {% if already_applied %}
-        <p style="color:#166534;"><strong>Вы уже откликались на эту вакансию.</strong></p>
-      {% else %}
-        <a href="{% url 'apply_to_vacancy' vacancy.id %}" style="display:inline-block; text-decoration:none; background:#0a2540; color:#fff; border-radius:8px; padding:10px 14px;">Откликнуться</a>
+      <h2 class="profile-panel__title" style="font-size:1rem;">Описание</h2>
+      <p class="profile-panel__text" style="white-space:pre-wrap;">{{ vacancy.description }}</p>
+
+      {% if vacancy.requirements %}
+        <h2 class="profile-panel__title" style="font-size:1rem; margin-top:20px;">Требования</h2>
+        <p class="profile-panel__text" style="white-space:pre-wrap;">{{ vacancy.requirements }}</p>
       {% endif %}
-    {% elif not user.is_authenticated %}
-      <a href="{% url 'login' %}" style="display:inline-block; text-decoration:none; background:#0a2540; color:#fff; border-radius:8px; padding:10px 14px;">Войти, чтобы откликнуться</a>
-    {% else %}
-      <p style="color:#b91c1c; font-weight:600;">Откликаться на вакансии могут только зарегистрированные студенты.</p>
-    {% endif %}
+
+      <div style="margin-top:24px; display:flex; flex-wrap:wrap; gap:10px;">
+        {% if user.is_authenticated and can_apply %}
+          {% if already_applied %}
+            <p class="alert-tk alert-tk--success" style="margin:0;">Вы уже откликались на эту вакансию.</p>
+          {% else %}
+            <a href="{% url 'apply_to_vacancy' vacancy.id %}" class="btn-primary-tk">Откликнуться</a>
+          {% endif %}
+        {% elif not user.is_authenticated %}
+          <a href="{% url 'login' %}" class="btn-primary-tk">Войти, чтобы откликнуться</a>
+        {% else %}
+          <p class="alert-tk alert-tk--warning" style="margin:0;">Откликаться могут только участники с аккаунтом студента.</p>
+        {% endif %}
+      </div>
+    </article>
   </div>
 </div>
 {% endblock %}
-

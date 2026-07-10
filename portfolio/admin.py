@@ -38,9 +38,16 @@ class StudentAgeGroupFilter(admin.SimpleListFilter):
 
 @admin.register(Student)
 class StudentAdmin(admin.ModelAdmin):
-    list_display = ['full_name', 'course', 'student_card_number', 'is_approved', 'created_at']
-    list_filter = ['course', 'is_approved', 'data_processing_consent', StudentAgeGroupFilter]
-    search_fields = ['full_name', 'course', 'student_card_number']
+    list_display = [
+        'full_name',
+        'specialty',
+        'student_card_number',
+        'is_approved',
+        'data_processing_consent',
+        'created_at',
+    ]
+    list_filter = ['is_approved', 'data_processing_consent', StudentAgeGroupFilter]
+    search_fields = ['full_name', 'specialty', 'student_card_number']
     readonly_fields = ['created_at', 'updated_at']
     actions = ['approve_students', 'reject_students']
 
@@ -63,9 +70,9 @@ class ManagerProfileAdmin(admin.ModelAdmin):
 
 @admin.register(Employer)
 class EmployerAdmin(admin.ModelAdmin):
-    list_display = ['company_name', 'sector', 'contact_person', 'is_approved', 'created_at']
+    list_display = ['company_name', 'sector', 'contact_person', 'phone', 'is_approved', 'created_at']
     list_filter = ['sector', 'is_approved']
-    search_fields = ['company_name', 'contact_person']
+    search_fields = ['company_name', 'contact_person', 'phone']
     readonly_fields = ['created_at', 'updated_at']
     actions = ['approve_employers', 'reject_employers']
 
@@ -99,7 +106,7 @@ class AchievementAdmin(admin.ModelAdmin):
 
 @admin.register(ContactRequest)
 class ContactRequestAdmin(admin.ModelAdmin):
-    list_display = ['student', 'employer', 'status', 'requested_at', 'responded_at']
+    list_display = ['student', 'employer', 'status', 'requested_at', 'manager_responded_at']
     list_filter = ['status', 'requested_at']
     search_fields = ['student__full_name', 'employer__company_name', 'employer__user__email']
 
@@ -108,7 +115,7 @@ class ContactRequestAdmin(admin.ModelAdmin):
 class VacancyAdmin(admin.ModelAdmin):
     list_display = ['title', 'employer', 'employment_type', 'status', 'is_public', 'created_at']
     list_filter = ['employment_type', 'status', 'is_public']
-    search_fields = ['title', 'employer__company_name', 'tech_stack', 'region']
+    search_fields = ['title', 'employer__company_name', 'region']
 
 
 @admin.register(Application)

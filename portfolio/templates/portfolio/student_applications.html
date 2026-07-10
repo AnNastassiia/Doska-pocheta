@@ -1,8 +1,9 @@
 {% extends 'base.html' %}
 {% block content %}
-<div style="padding:20px; background:#f8fafc; min-height:calc(100vh - 60px);">
-  <div style="max-width:1000px; margin:0 auto; background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:20px;">
-    <h1 style="margin-top:0;">Мои отклики</h1>
+<div class="page-shell">
+  <div class="page-inner">
+    <header class="page-header reveal"><h1 class="page-title">Мои отклики</h1></header>
+    <div class="page-panel reveal" style="--reveal-delay: 1;">
     <div style="display:grid; gap:10px;">
       {% if accepted_contacts|length > 0 %}
         <div style="border:1px solid #d1fae5; border-radius:10px; padding:14px; background:#ecfdf5;">
@@ -20,7 +21,7 @@
         </div>
       {% endif %}
       {% for app in applications %}
-        <div style="border:1px solid #e5e7eb; border-radius:10px; padding:14px;">
+        <article class="ui-card" style="margin-bottom:12px;">
           <h3 style="margin:0 0 6px 0;">{{ app.vacancy.title }}</h3>
           <div style="color:#6b7280;">{{ app.vacancy.employer.company_name }} · {{ app.get_status_display }}</div>
           {% if app.message %}
@@ -41,11 +42,12 @@
               {% endif %}
             </div>
           {% endif %}
-          <a href="{% url 'vacancy_detail' app.vacancy.id %}" style="text-decoration:none; color:#0a63c6;">К вакансии →</a>
-        </div>
+          <a href="{% url 'vacancy_detail' app.vacancy.id %}" class="link-btn">К вакансии →</a>
+        </article>
       {% empty %}
-        <p style="color:#6b7280;">Вы еще не отправляли отклики.</p>
+        <p class="empty-state">Вы еще не отправляли отклики.</p>
       {% endfor %}
+    </div>
     </div>
   </div>
 </div>

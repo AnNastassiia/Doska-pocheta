@@ -1,0 +1,181 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="manager-page">
+    <main class="manager-page__inner">
+        <div class="dashboard-content">
+            <h1>Отклики студентов на вакансии</h1>
+            <p style="color:#6b7280;">Просмотрите, как студенты отзываются на вакансии работодателей. Следите за статусом откликов.</p>
+
+            <!-- Фильтры и сортировка -->
+            <div style="margin: 24px 0; padding: 20px; background: var(--tk-blue-soft); border-left: 4px solid var(--tk-blue); border-radius: 8px;">
+                <form method="get" style="display: grid; gap: 12px;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+                        <label style="display: flex; flex-direction: column;">
+                            <span style="font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--tk-blue);">Статус отклика</span>
+                            <select name="status" style="padding: 8px 12px; border: 1px solid var(--tk-border); border-radius: 4px; background: white; color: var(--tk-text);">
+                                <option value="">Все статусы</option>
+                                <option value="submitted" {% if current_status == 'submitted' %}selected{% endif %}>Новые</option>
+                                <option value="reviewing" {% if current_status == 'reviewing' %}selected{% endif %}>На рассмотрении</option>
+                                <option value="accepted" {% if current_status == 'accepted' %}selected{% endif %}>Принято</option>
+                                <option value="rejected" {% if current_status == 'rejected' %}selected{% endif %}>Отклонено</option>
+                            </select>
+                        </label>
+
+                        <label style="display: flex; flex-direction: column;">
+                            <span style="font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--tk-blue);">Студент</span>
+                            <input type="text" name="student" value="{{ student_filter }}" placeholder="Поиск по ФИО студента" style="padding: 8px 12px; border: 1px solid var(--tk-border); border-radius: 4px; background: white; color: var(--tk-text);">
+                        </label>
+
+                        <label style="display: flex; flex-direction: column;">
+                            <span style="font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--tk-blue);">Работодатель</span>
+                            <input type="text" name="employer" value="{{ employer_filter }}" placeholder="Поиск по названию компании" style="padding: 8px 12px; border: 1px solid var(--tk-border); border-radius: 4px; background: white; color: var(--tk-text);">
+                        </label>
+
+                        <label style="display: flex; flex-direction: column;">
+                            <span style="font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--tk-blue);">Сортировка</span>
+                            <select name="sort" style="padding: 8px 12px; border: 1px solid var(--tk-border); border-radius: 4px; background: white; color: var(--tk-text);">
+                                <option value="-created_at" {% if current_sort == '-created_at' %}selected{% endif %}>По времени (новые сверху)</option>
+                                <option value="created_at" {% if current_sort == 'created_at' %}selected{% endif %}>По времени (старые сверху)</option>
+                                <option value="student__full_name" {% if current_sort == 'student__full_name' %}selected{% endif %}>По ФИО студента (А→Я)</option>
+                                <option value="-student__full_name" {% if current_sort == '-student__full_name' %}selected{% endif %}>По ФИО студента (Я→А)</option>
+                            </select>
+                        </label>
+                    </div>
+                    <button type="submit" class="btn-primary-tk" style="padding: 10px 16px; align-self: flex-start;">Фильтровать</button>
+                </form>
+            </div>
+
+            <!-- Список откликов -->
+            {% if applications %}
+                {% for app in applications %}
+                    <section class="profile-section">
+                        <div style="display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap;">
+                            <!-- Информация об отклике -->
+                            <div style="flex: 1; min-width: 250px;">
+                                <h2 style="margin-bottom: 8px;">{{ app.vacancy.title }}</h2>
+                                <p><strong>Компания:</strong> {{ app.vacancy.employer.company_name }}</p>
+                                <p><strong>Формат:</strong> {{ app.vacancy.get_employment_type_display }}</p>
+                                <p><strong>Отправлен:</strong> {{ app.created_at|date:"d.m.Y H:i" }}</p>
+                                
+                                <div style="margin-top: 12px;">
+                                    <span class="status-badge" style="
+                                        display: inline-block;
+                                        padding: 6px 12px;
+                                        border-radius: 20px;
+                                        font-size: 13px;
+                                        font-weight: 500;
+                                        {% if app.status == 'submitted' %}
+                                            background: #fef3c7;
+                                            color: #92400e;
+                                        {% elif app.status == 'reviewing' %}
+                                            background: #dbeafe;
+                                            color: #0c4a6e;
+                                        {% elif app.status == 'accepted' %}
+                                            background: #dcfce7;
+                                            color: #166534;
+                                        {% else %}
+                                            background: #fee2e2;
+                                            color: #991b1b;
+                                        {% endif %}
+                                    ">
+                                        {{ app.get_status_display }}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Информация о студенте -->
+                            <div style="flex: 1; min-width: 250px; border-left: 4px solid var(--tk-border); padding-left: 16px;">
+                                <h3 style="margin-bottom: 8px; color: var(--tk-blue);">Студент</h3>
+                                <p><strong>ФИО:</strong> {{ app.student.full_name }}</p>
+                                <p><strong>Специальность:</strong> {{ app.student.specialty|default:"не указана" }}</p>
+                                <p><strong>Email:</strong> {{ app.student.contact_email|default:app.student.user.email }}</p>
+                                <p><strong>Телефон:</strong> {{ app.student.phone|default:"не указан" }}</p>
+                                
+                                <a href="{% url 'student_profile' app.student.id %}" class="btn-accent" style="display: inline-block; margin-top: 12px; text-decoration: none;">Профиль студента</a>
+                                <a href="{% url 'manager_application_detail' app.id %}" class="btn-accent" style="display: inline-block; margin-top: 12px; margin-left: 8px; text-decoration: none; background: #6366f1; border-color: #6366f1;">Детали</a>
+                            </div>
+                        </div>
+
+                        <!-- Сообщение студента -->
+                        {% if app.message %}
+                            <div style="margin-top: 16px; padding: 12px; background: #f9fafb; border-left: 4px solid #3b82f6; border-radius: 4px;">
+                                <strong style="display: block; margin-bottom: 8px;">Сообщение студента:</strong>
+                                <p style="margin: 0; white-space: pre-wrap;">{{ app.message }}</p>
+                            </div>
+                        {% endif %}
+
+                        <!-- Ответ работодателя -->
+                        {% if app.employer_message %}
+                            <div style="margin-top: 12px; padding: 12px; background: #f0fdf4; border-left: 4px solid #10b981; border-radius: 4px;">
+                                <strong style="display: block; margin-bottom: 8px;">Ответ работодателя:</strong>
+                                <p style="margin: 0; white-space: pre-wrap;">{{ app.employer_message }}</p>
+                            </div>
+                        {% endif %}
+                    </section>
+                {% endfor %}
+            {% else %}
+                <div style="padding: 32px; text-align: center; background: #f9fafb; border-radius: 8px; margin-top: 24px;">
+                    <p style="color: #6b7280; font-size: 16px;">
+                        {% if student_filter or employer_filter or current_status %}
+                            По вашему фильтру откликов не найдено.
+                        {% else %}
+                            Откликов студентов пока нет.
+                        {% endif %}
+                    </p>
+                </div>
+            {% endif %}
+        </div>
+    </main>
+</div>
+
+<style>
+.profile-section {
+    padding: 20px;
+    margin: 16px 0;
+    border: 1px solid var(--tk-border);
+    border-radius: 8px;
+    background: var(--tk-white);
+}
+
+.btn-primary-tk {
+    background: var(--tk-blue);
+    color: var(--tk-white);
+    padding: 10px 16px;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-primary-tk:hover {
+    background: var(--tk-blue-dark);
+}
+
+.action-btn {
+    display: inline-block;
+    padding: 8px 12px;
+    background: var(--tk-blue);
+    color: var(--tk-white);
+    border-radius: 4px;
+    font-size: 13px;
+    transition: background 0.3s ease;
+}
+
+.action-btn:hover {
+    background: var(--tk-blue-dark);
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+}
+</style>
+
+{% endblock %}

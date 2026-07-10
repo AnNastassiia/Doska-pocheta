@@ -1,12 +1,80 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="auth-form">
-    <h2>{% if edit_mode %}Редактировать вакансию{% else %}Новая вакансия{% endif %}</h2>
-    <form method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">{% if edit_mode %}Сохранить{% else %}Создать{% endif %}</button>
-    </form>
-</div>
-{% endblock %}
+<div class="page-shell">
+  <div class="page-inner page-inner--narrow">
+    <header class="page-header reveal">
+      <h1 class="page-title">{% if edit_mode %}Редактировать вакансию{% else %}Новая вакансия{% endif %}</h1>
+      <p class="page-subtitle">Заполните описание и при необходимости укажите специальности для уведомлений.</p>
+    </header>
 
+    <form method="post" class="page-panel reveal" style="--reveal-delay: 1;">
+        {% csrf_token %}
+        <div style="display:grid; gap:14px;">
+            <div class="form-field">
+                <label for="{{ form.title.id_for_label }}">Название вакансии</label>
+                {{ form.title }}
+            </div>
+            <div class="form-field">
+                <label for="{{ form.description.id_for_label }}">Описание</label>
+                {{ form.description }}
+            </div>
+            <div class="form-field">
+                <label for="{{ form.requirements.id_for_label }}">Требования</label>
+                {{ form.requirements }}
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <div class="form-field">
+                    <label for="{{ form.region.id_for_label }}">Регион</label>
+                    {{ form.region }}
+                </div>
+                <div class="form-field">
+                    <label for="{{ form.employment_type.id_for_label }}">Формат</label>
+                    {{ form.employment_type }}
+                </div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <div class="form-field">
+                    <label for="{{ form.status.id_for_label }}">Статус</label>
+                    {{ form.status }}
+                </div>
+                <div class="form-field">
+                    <label for="{{ form.is_public.id_for_label }}">Публичная</label>
+                    {{ form.is_public }}
+                </div>
+            </div>
+            <div class="form-field">
+                <label for="{{ form.target_specialties.id_for_label }}">{{ form.target_specialties.label }}</label>
+                {{ form.target_specialties }}
+                {% if form.target_specialties.help_text %}
+                    <small style="color:var(--tk-muted);">{{ form.target_specialties.help_text }}</small>
+                {% endif %}
+            </div>
+            <div class="form-field">
+                <label for="{{ form.send_notifications.id_for_label }}">Отправить уведомления участникам</label>
+                {{ form.send_notifications }}
+            </div>
+        </div>
+        <button type="submit" class="btn-submit-tk" style="margin-top:18px;">{% if edit_mode %}Сохранить{% else %}Создать{% endif %}</button>
+    </form>
+  </div>
+</div>
+<style>
+.page-panel .form-field input[type="text"],
+.page-panel .form-field input[type="url"],
+.page-panel .form-field select,
+.page-panel .form-field textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 12px;
+    border: 1px solid var(--tk-border);
+    border-radius: 10px;
+    font-family: inherit;
+}
+.page-panel .form-field label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: var(--tk-blue);
+}
+</style>
+{% endblock %}

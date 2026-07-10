@@ -1,8 +1,9 @@
 {% extends 'base.html' %}
 {% block content %}
-<div style="padding:20px; background:#f8fafc; min-height:calc(100vh - 60px);">
-  <div style="max-width:1000px; margin:0 auto; background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:20px;">
-    <h1 style="margin-top:0;">Отклики студентов</h1>
+<div class="page-shell">
+  <div class="page-inner">
+    <header class="page-header reveal"><h1 class="page-title">Отклики участников</h1></header>
+    <div class="page-panel reveal" style="--reveal-delay: 1;">
     {% if accepted_contacts %}
       <div style="border:1px solid #d1fae5; border-radius:10px; padding:14px; background:#ecfdf5; margin-bottom:20px;">
         <h2 style="margin:0 0 8px 0;">Мои контакты / Взаимный интерес</h2>
@@ -65,7 +66,7 @@
                 <div style="display:flex; gap:10px; flex-wrap:wrap;">
                   <button type="submit" name="action" value="accept" style="background:#166534; color:#fff; border:none; border-radius:8px; padding:10px 14px;">Одобрить и обменяться контактами</button>
                   <button type="submit" name="action" value="reject" style="background:#b91c1c; color:#fff; border:none; border-radius:8px; padding:10px 14px;">Отклонить</button>
-                  <button type="submit" name="action" value="review" style="background:#0a2540; color:#fff; border:none; border-radius:8px; padding:10px 14px;">Отметить как рассматривается</button>
+                  <button type="submit" name="action" value="review" class="btn-submit-tk">Отметить как рассматривается</button>
                 </div>
               </form>
             </div>
@@ -74,6 +75,7 @@
       {% empty %}
         <p style="color:#6b7280;">Откликов пока нет.</p>
       {% endfor %}
+    </div>
     </div>
   </div>
 </div>

@@ -1,8 +1,8 @@
 {% extends 'base.html' %}
 {% load static %}
 {% block content %}
-<div class="dashboard-wrapper">
-    <main class="dashboard-main">
+<div class="manager-page">
+    <main class="manager-page__inner">
         <div class="dashboard-content">
             <h1>Студенты на модерации</h1>
             <p style="color:#6b7280;">Проверьте профиль, навыки и достижения. Менеджер может одобрить профиль или вернуть на доработку с причиной.</p>
@@ -12,10 +12,32 @@
                     <div style="display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap;">
                         <div>
                             <h2 style="margin-bottom:8px;">{{ student.full_name }}</h2>
-                            <p><strong>Группа:</strong> {{ student.course }}</p>
+                            <p><strong>Специальность:</strong> {{ student.specialty|default:"не указана" }}</p>
                             <p><strong>Дата рождения:</strong> {{ student.birth_date|default:"Не указана" }}</p>
                             <p><strong>Почта аккаунта:</strong> {{ student.user.email }}</p>
                             <p><strong>Контактный email:</strong> {{ student.contact_email|default:"Не указан" }}</p>
+                            {% if student.is_under_18 %}
+                                <p><strong>Телефон родителя:</strong> {{ student.parent_phone|default:"Не указан" }}</p>
+                                <p><strong>Email родителя:</strong> {{ student.parent_email|default:"Не указан" }}</p>
+                            {% endif %}
+                            <p>
+                                <strong>Согласие на обработку данных:</strong>
+                                {% if student.has_data_processing_consent_file %}
+                                    <a href="{{ student.data_processing_consent_file.url }}" target="_blank" rel="noopener">файл прикреплён</a>
+                                {% else %}
+                                    <span style="color:#b91c1c;">не прикреплено</span>
+                                {% endif %}
+                            </p>
+                            {% if student.is_under_18 %}
+                                <p>
+                                    <strong>Согласие законного представителя:</strong>
+                                    {% if student.has_parent_consent_file %}
+                                        <a href="{{ student.parent_consent_file.url }}" target="_blank" rel="noopener">файл прикреплён</a>
+                                    {% else %}
+                                        <span style="color:#b91c1c;">не прикреплено</span>
+                                    {% endif %}
+                                </p>
+                            {% endif %}
                             {% if student.rejection_reason %}
                                 <p style="color:#b91c1c;"><strong>Последняя причина отказа:</strong> {{ student.rejection_reason }}</p>
                             {% endif %}
@@ -27,6 +49,7 @@
                                 <img src="{% static 'default-avatar.svg' %}" alt="Фото по умолчанию" class="student-photo-preview">
                             {% endif %}
                             <a href="{% url 'student_profile' student.id %}" class="action-btn" style="text-decoration:none;">Открыть профиль</a>
+                            <a href="{% url 'manager_edit_student' student.id %}" class="action-btn" style="text-decoration:none;">Редактировать данные</a>
                         </div>
                     </div>
 
@@ -72,13 +95,15 @@
                             {% csrf_token %}
                             <button type="submit" class="btn-primary" style="width:auto;">Одобрить профиль</button>
                         </form>
-                        <form method="post" action="{% url 'manager_reject_student' student.id %}" style="flex:1; min-width:280px;">
+                        <form method="post" action="{{ student.manager_reject_url }}" style="flex:1; min-width:280px;">
                             {% csrf_token %}
                             <div class="reason-templates">
                                 <label class="reason-option"><input type="checkbox" class="reason-check" data-reason="Неподобающая фотография профиля. Загрузите фото в деловом/нейтральном стиле."> Неподобающая фотография</label>
                                 <label class="reason-option"><input type="checkbox" class="reason-check" data-reason="Недостаточно информации в разделе «О себе»."> Недостаточно информации о себе</label>
                                 <label class="reason-option"><input type="checkbox" class="reason-check" data-reason="Некорректно заполнены навыки. Проверьте их актуальность и формулировки."> Некорректные навыки</label>
                                 <label class="reason-option"><input type="checkbox" class="reason-check" data-reason="Проекты/достижения заполнены недостаточно подробно."> Недостаточно данных по проектам</label>
+                                <label class="reason-option"><input type="checkbox" class="reason-check" data-reason="Не приложено подписанное согласие на обработку персональных данных."> Нет согласия на обработку данных</label>
+                                <label class="reason-option"><input type="checkbox" class="reason-check" data-reason="Не приложено согласие законного представителя (для несовершеннолетних)."> Нет согласия родителя</label>
                                 <label class="reason-option"><input type="checkbox" class="reason-check reason-other-toggle"> Другое</label>
                             </div>
                             <input type="text" class="reason-other-input" placeholder="Укажите другую причину (если выбрано «Другое»)" style="width:100%; margin-bottom:8px; padding:10px 12px; border:1px solid #d1d5db; border-radius:6px;" />
@@ -95,18 +120,6 @@
 </div>
 
 <style>
-.dashboard-wrapper {
-    padding: 20px;
-    background: #f8fafc;
-    min-height: calc(100vh - 60px);
-}
-.dashboard-main {
-    max-width: 1200px;
-    margin: 0 auto;
-    background:#fff;
-    border-radius:12px;
-    padding:32px;
-}
 .profile-section {
     border:1px solid #e5e7eb;
     border-radius:12px;

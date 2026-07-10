@@ -1,16 +1,17 @@
 {% extends 'base.html' %}
 {% block content %}
-<div style="padding:20px; background:#f8fafc; min-height:calc(100vh - 60px);">
-  <div style="max-width:1000px; margin:0 auto; background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:24px;">
-    <h1 style="margin-top:0;">Входящие предложения</h1>
+<div class="page-shell">
+  <div class="page-inner">
+    <header class="page-header reveal"><h1 class="page-title">Входящие предложения</h1></header>
+    <div class="page-panel reveal" style="--reveal-delay: 1;">
     {% if inquiries %}
       <div style="display:grid; gap:18px; margin-top:20px;">
         {% for inquiry in inquiries %}
-          <div style="border:1px solid #e5e7eb; border-radius:12px; padding:18px; background:#ffffff;">
+          <article class="ui-card" style="margin-bottom:14px;">
             <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px; align-items:flex-start;">
               <div>
                 <h2 style="margin:0 0 8px 0;">{{ inquiry.employer.company_name }}</h2>
-                <p style="margin:0; color:#475569;">Вакансия: {{ inquiry.vacancy.title if inquiry.vacancy else 'Не указана' }}</p>
+                <p style="margin:0; color:#475569;">Вакансия: {% if inquiry.vacancy %}{{ inquiry.vacancy.title }}{% else %}Не указана{% endif %}</p>
               </div>
               <div style="text-align:right; color:#374151; font-size:14px;">
                 {{ inquiry.created_at|date:'d.m.Y H:i' }}<br>
@@ -33,12 +34,13 @@
                 <p style="margin:0;"><strong>Ответ студента:</strong> {{ inquiry.response_message|default:'Без комментариев' }}</p>
               </div>
             {% endif %}
-          </div>
+          </article>
         {% endfor %}
       </div>
     {% else %}
-      <p style="color:#6b7280;">У вас пока нет приглашений от работодателей.</p>
+      <p class="empty-state">У вас пока нет приглашений от работодателей.</p>
     {% endif %}
+    </div>
   </div>
 </div>
 {% endblock %}

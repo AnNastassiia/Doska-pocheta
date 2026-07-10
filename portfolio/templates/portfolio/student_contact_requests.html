@@ -1,12 +1,15 @@
 {% extends 'base.html' %}
 {% block content %}
-<div style="padding:20px; background:#f8fafc; min-height:calc(100vh - 60px);">
-  <div style="max-width:1000px; margin:0 auto; background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:20px;">
-    <h1 style="margin-top:0;">Запросы контакта</h1>
-    <p style="color:#6b7280;">Здесь вы решаете, можно ли работодателю получить ваши контакты.</p>
+<div class="page-shell">
+  <div class="page-inner">
+    <header class="page-header reveal">
+      <h1 class="page-title">Запросы контакта</h1>
+      <p class="page-subtitle">Здесь вы решаете, можно ли работодателю получить ваши контакты.</p>
+    </header>
+    <div class="page-panel reveal" style="--reveal-delay: 1;">
     <div style="display:grid; gap:10px;">
       {% for req in requests %}
-        <div style="border:1px solid #e5e7eb; border-radius:10px; padding:14px;">
+        <article class="ui-card" style="margin-bottom:12px;">
           <h3 style="margin:0 0 4px 0;">{{ req.employer.company_name }}</h3>
           <div style="color:#6b7280;">{{ req.employer.contact_person }} · {{ req.employer.user.email }}</div>
           <p style="margin:8px 0 0 0;"><strong>Статус:</strong> {{ req.get_status_display }}</p>
@@ -21,19 +24,19 @@
             <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
               <form method="post" action="{% url 'approve_contact_request' req.id %}">
                 {% csrf_token %}
-                <textarea name="response_message" rows="2" placeholder="Комментарий (необязательно)" style="display:block; width:280px; margin-bottom:8px; border:1px solid #d1d5db; border-radius:8px; padding:8px;"></textarea>
-                <button type="submit" style="border:none; background:#166534; color:#fff; border-radius:8px; padding:8px 12px;">Одобрить</button>
+                <textarea name="response_message" rows="2" placeholder="Комментарий (необязательно)" class="form-control-tk" style="display:block; max-width:320px; margin-bottom:8px;"></textarea>
+                <button type="submit" class="btn-submit-tk" style="background:#166534;">Одобрить</button>
               </form>
               <form method="post" action="{% url 'reject_contact_request' req.id %}">
                 {% csrf_token %}
-                <textarea name="response_message" rows="2" placeholder="Комментарий (необязательно)" style="display:block; width:280px; margin-bottom:8px; border:1px solid #d1d5db; border-radius:8px; padding:8px;"></textarea>
-                <button type="submit" style="border:1px solid #fca5a5; background:#fff; color:#b91c1c; border-radius:8px; padding:8px 12px;">Отклонить</button>
+                <textarea name="response_message" rows="2" placeholder="Комментарий (необязательно)" class="form-control-tk" style="display:block; max-width:320px; margin-bottom:8px;"></textarea>
+                <button type="submit" class="btn-outline" style="padding:8px 12px; cursor:pointer; color:var(--tk-red); border-color:#fca5a5; font-family:inherit;">Отклонить</button>
               </form>
             </div>
           {% endif %}
-        </div>
+        </article>
       {% empty %}
-        <p style="color:#6b7280;">Запросов пока нет.</p>
+        <p class="empty-state">Запросов пока нет.</p>
       {% endfor %}
     </div>
   </div>

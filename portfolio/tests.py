@@ -16,7 +16,6 @@ class SmokeWorkflowTests(TestCase):
 		self.student = Student.objects.create(
 			user=self.student_user,
 			full_name='Иван Иванов',
-			course='ПИ-41',
 			is_approved=True,
 			contact_email='student-contact@test.local',
 			birth_date=date(2000, 1, 1),
@@ -31,19 +30,45 @@ class SmokeWorkflowTests(TestCase):
 			is_approved=True,
 		)
 
-	def test_contact_request_requires_student_approval(self):
+	def test_contact_request_requires_manager_approval(self):
 		self.client.login(username='employer@test.local', password='pass12345')
 		response = self.client.post(reverse('request_contact', args=[self.student.id]), {'message': 'Хотим связаться'})
 		self.assertEqual(response.status_code, 302)
 		cr = ContactRequest.objects.get(employer=self.employer, student=self.student)
-		self.assertEqual(cr.status, 'pending_student')
+		self.assertEqual(cr.status, 'pending_manager')
 
 		self.client.logout()
-		self.client.login(username='student@test.local', password='pass12345')
-		response = self.client.post(reverse('approve_contact_request', args=[cr.id]), {'response_message': 'Ок'})
+		self.client.login(username='manager@test.local', password='pass12345')
+		response = self.client.post(reverse('manager_approve_contact_request', args=[cr.id]), {'response_message': 'Ок'})
 		self.assertEqual(response.status_code, 302)
 		cr.refresh_from_db()
-		self.assertEqual(cr.status, 'approved_by_student')
+		self.assertEqual(cr.status, 'approved_by_manager')
+
+	def test_request_contact_does_not_override_approved_status(self):
+		ContactRequest.objects.create(
+			employer=self.employer,
+			student=self.student,
+			status='approved_by_manager',
+			employer_message='Уже одобрено',
+		)
+		self.client.login(username='employer@test.local', password='pass12345')
+		response = self.client.post(reverse('request_contact', args=[self.student.id]), {'message': 'Попытка нового запроса'})
+		self.assertEqual(response.status_code, 302)
+		cr = ContactRequest.objects.get(employer=self.employer, student=self.student)
+		self.assertEqual(cr.status, 'approved_by_manager')
+		self.assertEqual(cr.employer_message, 'Уже одобрено')
+
+	def test_manager_contact_requests_status_filter_includes_legacy_status(self):
+		ContactRequest.objects.create(
+			employer=self.employer,
+			student=self.student,
+			status='approved_by_student',
+			employer_message='Старый статус',
+		)
+		self.client.login(username='manager@test.local', password='pass12345')
+		response = self.client.get(reverse('manager_contact_requests'), {'status': 'approved_by_manager'})
+		self.assertEqual(response.status_code, 200)
+		self.assertContains(response, 'Старый статус')
 
 	def test_vacancy_apply_creates_application_and_notification(self):
 		vacancy = Vacancy.objects.create(

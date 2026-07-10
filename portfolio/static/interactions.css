@@ -1,0 +1,249 @@
+/* Лёгкая динамика: hover, появление при скролле, hero */
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+    .reveal {
+        opacity: 1 !important;
+        transform: none !important;
+    }
+}
+
+@keyframes tk-fade-up {
+    from {
+        opacity: 0;
+        transform: translateY(18px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes tk-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes tk-scale-in {
+    from {
+        opacity: 0;
+        transform: scale(0.97);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Hero — появление при загрузке */
+.hero-animate > * {
+    animation: tk-fade-up 0.65s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+.hero-animate > *:nth-child(1) { animation-delay: 0.05s; }
+.hero-animate > *:nth-child(2) { animation-delay: 0.12s; }
+.hero-animate > *:nth-child(3) { animation-delay: 0.2s; }
+.hero-animate > *:nth-child(4) { animation-delay: 0.28s; }
+
+.main-header {
+    animation: tk-fade-in 0.5s ease;
+}
+
+/* Появление блоков при прокрутке */
+.reveal {
+    opacity: 0;
+    transform: translateY(22px);
+    transition:
+        opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+        transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+    transition-delay: calc(var(--reveal-delay, 0) * 70ms);
+}
+.reveal.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Карточки и кнопки */
+.student-card,
+.vacancy-card,
+.ui-card,
+.help-card,
+.about-service,
+.about-course,
+.about-panel,
+.manager-card,
+.manager-card-link,
+.profile-panel,
+.profile-action-card,
+.student-profile-hero__card,
+.project-card,
+.project-item,
+.auth-form {
+    transition:
+        transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+        box-shadow 0.25s ease,
+        border-color 0.25s ease;
+}
+
+.student-card-link:hover .student-card,
+.vacancy-card:hover,
+.ui-card:hover,
+.help-card:hover,
+.about-service:hover,
+.about-course:hover,
+.manager-card:hover,
+.manager-card-link:hover,
+.project-item:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 28px rgba(29, 58, 138, 0.12);
+}
+
+.student-card-link:active .student-card,
+.vacancy-card:active,
+.ui-card:active {
+    transform: translateY(-1px);
+}
+
+.btn-primary-tk,
+.btn-accent,
+.btn-outline,
+.btn,
+.auth-form button,
+.vacancies-carousel__btn {
+    transition:
+        transform 0.2s ease,
+        background 0.2s ease,
+        color 0.2s ease,
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.btn-primary-tk:hover,
+.btn-accent:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(29, 58, 138, 0.2);
+}
+
+.btn-accent:hover {
+    box-shadow: 0 6px 16px rgba(227, 30, 36, 0.25);
+}
+
+.btn-primary-tk:active,
+.btn-accent:active {
+    transform: translateY(0);
+}
+
+/* Навигация */
+.nav-link {
+    position: relative;
+    transition: color 0.2s ease;
+}
+.nav-link::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: -4px;
+    width: 100%;
+    height: 2px;
+    background: var(--tk-red);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.25s ease;
+}
+.nav-link:hover {
+    color: var(--tk-red);
+}
+.nav-link:hover::after {
+    transform: scaleX(1);
+}
+
+.chip {
+    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+.chip:hover {
+    transform: translateY(-1px);
+}
+.chip.active {
+    transform: none;
+}
+
+.skill-tag {
+    transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+.skill-tag:hover {
+    transform: scale(1.04);
+    background: var(--tk-blue);
+    color: var(--tk-white);
+}
+
+/* Кабинет: боковое меню */
+.sidebar-link {
+    transition: background 0.2s ease, color 0.2s ease, padding-left 0.2s ease;
+}
+.sidebar-link:hover {
+    padding-left: 16px;
+}
+
+.user-card {
+    transition: box-shadow 0.25s ease, transform 0.25s ease;
+}
+.user-card:hover {
+    box-shadow: 0 8px 20px rgba(29, 58, 138, 0.08);
+}
+
+.topbar.is-scrolled {
+    box-shadow: 0 4px 14px rgba(29, 58, 138, 0.08);
+    transition: box-shadow 0.3s ease;
+}
+
+/* Список вакансий */
+.ui-card {
+    background: var(--tk-white);
+    border: 1px solid var(--tk-border);
+    border-radius: 12px;
+    padding: 16px;
+    border-top: 3px solid var(--tk-red);
+}
+
+.ui-card h3 a {
+    transition: color 0.2s ease;
+}
+.ui-card h3 a:hover {
+    color: var(--tk-red);
+}
+.ui-card--unread {
+    border-left: 4px solid var(--tk-blue);
+    background: rgba(238, 242, 251, 0.95) !important;
+}
+
+/* Профиль: обложка */
+.profile-cover {
+    background-size: 200% 200%;
+    animation: tk-gradient-shift 12s ease infinite;
+}
+
+@keyframes tk-gradient-shift {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+}
+
+.project-card {
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.project-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 24px rgba(29, 58, 138, 0.1);
+}
+
+.search-box {
+    transition: box-shadow 0.25s ease, transform 0.25s ease;
+}
+.search-box:focus-within {
+    box-shadow: 0 8px 24px rgba(29, 58, 138, 0.12);
+    transform: translateY(-2px);
+}

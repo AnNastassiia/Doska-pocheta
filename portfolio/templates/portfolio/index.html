@@ -1,12 +1,17 @@
 {% extends 'base.html' %}
 {% load static %}
 {% block content %}
+<div class="landing-page">
 <header class="main-header">
     <div class="container header-inner">
-        <a class="brand" href="/">Академия-ТОП</a>
-        <nav class="main-nav">
+        <a class="brand-logo" href="/">
+            <img src="{% static 'traektoriya-logo.png' %}" alt="Центр профориентации Траектория">
+        </a>
+        <nav class="main-nav header-nav-extra">
             <a href="#vacancies" class="nav-link">Вакансии</a>
-            <a href="#students" class="nav-link">Студенты</a>
+            <a href="#students" class="nav-link">Участники</a>
+            <a href="{% url 'about_organization' %}" class="nav-link">Об организации</a>
+            <a href="{% url 'help_guide' %}" class="nav-link">Руководство</a>
             {% if user.is_authenticated %}
                 <a href="/dashboard/" class="nav-link">Кабинет</a>
                 <a href="/logout/" class="nav-link">Выход</a>
@@ -14,14 +19,15 @@
                 <a href="/login/" class="nav-link">Вход</a>
             {% endif %}
         </nav>
-        <a href="#" class="btn-outline">Стать партнером</a>
+        <a href="#" class="btn-accent">Стать партнёром</a>
     </div>
 </header>
 
 <section class="hero-section">
-    <div class="container hero-content">
-        <h1>Цифровая Доска почета.</h1>
-        <p>Место, где достижения студентов подтверждены администрацией колледжа.</p>
+    <div class="container hero-content hero-animate">
+        <span class="hero-org">Центр профориентации «Траектория»</span>
+        <h1>Цифровая доска почёта</h1>
+        <p>Платформа центра «Траектория»: здесь школьники и студенты показывают достижения, а работодатели — вакансии и стажировки.</p>
         <div class="search-box">
             <span class="search-icon">🔍</span>
             <input type="text" placeholder="Найти разработчика, дизайнера или аналитика..." name="q">
@@ -29,51 +35,56 @@
     </div>
 </section>
 
-<section id="vacancies" class="top-students-section" style="padding-top:10px;">
+<section id="vacancies" class="top-students-section reveal" style="padding-top:10px;">
     <div class="container">
-        <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
-            <h2 style="margin:0;">Вакансии от работодателей</h2>
+        <div class="reveal" style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; --reveal-delay: 1;">
+            <h2 style="margin:0; color:var(--tk-blue);">Вакансии от работодателей</h2>
             <a href="{% url 'vacancies_list' %}" class="btn-outline" style="padding:8px 14px;">Смотреть все вакансии</a>
         </div>
-        <p style="color:#6b7280; margin-top:8px;">Актуальные предложения (до 7), листайте вправо.</p>
+        <p style="color:var(--tk-muted); margin-top:8px;">Актуальные предложения (до 7). Листайте стрелками, если вакансий больше.</p>
 
-        <div style="display:flex; gap:14px; overflow-x:auto; padding:6px 2px 12px;">
-            {% for vacancy in featured_vacancies %}
-                <div style="min-width:280px; max-width:320px; text-decoration:none; color:inherit;">
-                    <article style="background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:14px; height:100%; display:flex; flex-direction:column; justify-content:space-between;">
-                        <div>
-                            <h3 style="margin:0 0 6px 0; color:#0a2540;">{{ vacancy.title }}</h3>
-                            <p style="margin:0; color:#6b7280; font-size:14px;">
-                                {{ vacancy.employer.company_name }} · {{ vacancy.get_employment_type_display }}
-                            </p>
-                            <p style="margin:8px 0 0 0; color:#374151;">{{ vacancy.description|truncatewords:20 }}</p>
-                        </div>
-                        <a href="{% url 'vacancy_detail' vacancy.id %}" style="display:inline-block; margin-top:16px; text-decoration:none; background:#0a2540; color:#fff; border-radius:8px; padding:10px 12px;">Узнать подробнее</a>
-                    </article>
+        {% if featured_vacancies %}
+        <div class="vacancies-carousel" id="vacancies-carousel">
+            <button type="button" class="vacancies-carousel__btn vacancies-carousel__btn--prev" id="vacancies-prev" aria-label="Предыдущие вакансии" disabled>‹</button>
+            <div class="vacancies-carousel__viewport" id="vacancies-scroll">
+                <div class="vacancies-carousel__track">
+                    {% for vacancy in featured_vacancies %}
+                    <div class="vacancies-carousel__item">
+                        <article class="vacancy-card">
+                            <div class="vacancy-card__body">
+                                <h3 class="vacancy-card__title">{{ vacancy.title }}</h3>
+                                <p class="vacancy-card__meta">
+                                    {{ vacancy.employer.company_name }} · {{ vacancy.get_employment_type_display }}
+                                </p>
+                                <p class="vacancy-card__desc">{{ vacancy.description }}</p>
+                            </div>
+                            <a href="{% url 'vacancy_detail' vacancy.id %}" class="btn-primary-tk vacancy-card__action">Узнать подробнее</a>
+                        </article>
+                    </div>
+                    {% endfor %}
+                    <div class="vacancies-carousel__item">
+                        <a href="{% url 'vacancies_list' %}" class="vacancy-card vacancy-card--more">
+                            <strong>Показать остальные вакансии →</strong>
+                        </a>
+                    </div>
                 </div>
-            {% empty %}
-                <p style="color:#6b7280;">Пока нет опубликованных вакансий.</p>
-            {% endfor %}
-
-            {% if featured_vacancies %}
-                <a href="{% url 'vacancies_list' %}" style="min-width:220px; text-decoration:none; color:inherit;">
-                    <article style="background:#eff6ff; border:1px dashed #93c5fd; border-radius:12px; padding:14px; height:100%; display:flex; align-items:center; justify-content:center; text-align:center;">
-                        <strong style="color:#1d4ed8;">Показать остальные вакансии →</strong>
-                    </article>
-                </a>
-            {% endif %}
+            </div>
+            <button type="button" class="vacancies-carousel__btn vacancies-carousel__btn--next" id="vacancies-next" aria-label="Следующие вакансии">›</button>
         </div>
+        {% else %}
+        <p style="color:var(--tk-muted);">Пока нет опубликованных вакансий.</p>
+        {% endif %}
     </div>
 </section>
 
-<section id="students" class="top-students-section">
+<section id="students" class="top-students-section reveal">
     <div class="container">
-        <h2>Топ-студенты месяца</h2>
+        <h2 class="reveal" style="color:var(--tk-blue); --reveal-delay: 0;">Участники месяца</h2>
         <div class="chips">
-            <button class="chip active">Все</button>
-            <button class="chip">Программирование</button>
-            <button class="chip">Дизайн</button>
-            <button class="chip">Сети и Безопасность</button>
+            <a href="{% url 'index' %}" class="chip{% if not specialty %} active{% endif %}">Все</a>
+            {% for specialty_name in specialties %}
+                <a href="?specialty={{ specialty_name|urlencode }}" class="chip{% if specialty == specialty_name %} active{% endif %}">{{ specialty_name }}</a>
+            {% endfor %}
         </div>
         <div class="skill-filter">
             <span>Теги: </span>
@@ -85,45 +96,49 @@
         </div>
         <div class="top-students-grid">
             {% for student in students %}
-            <a href="/profile/{{ student.id }}/" class="student-card-link">
+            <a href="/profile/{{ student.id }}/" class="student-card-link reveal" style="--reveal-delay: {{ forloop.counter }};">
                 <div class="student-card">
-                    <div class="student-avatar">
-                        {% if student.is_incognito %}
-                            <img src="{% static 'default-avatar.svg' %}" alt="Фото скрыто" loading="lazy">
-                        {% elif student.photo %}
-                            <img src="{{ student.photo.url }}" alt="Фото {{ student.full_name }}" loading="lazy">
-                        {% else %}
-                            <img src="{% static 'default-avatar.svg' %}" alt="Фото студента" loading="lazy">
-                        {% endif %}
-                    </div>
-                    <div class="badge-row">
-                        <span class="name">
+                    <div class="student-card__body">
+                        <div class="student-avatar">
                             {% if student.is_incognito %}
-                                Студент (Инкогнито)
+                                <img src="{% static 'default-avatar.svg' %}" alt="Фото скрыто" loading="lazy">
+                            {% elif student.photo %}
+                                <img src="{{ student.photo.url }}" alt="Фото {{ student.full_name }}" loading="lazy">
                             {% else %}
-                                {{ student.full_name }}
+                                <img src="{% static 'default-avatar.svg' %}" alt="Фото студента" loading="lazy">
                             {% endif %}
-                        </span>
-                        <span class="verified">✔</span>
+                        </div>
+                        <div class="badge-row">
+                            <span class="name">
+                                {% if student.is_incognito %}
+                                    Студент (Инкогнито)
+                                {% else %}
+                                    {{ student.full_name }}
+                                {% endif %}
+                            </span>
+                            <span class="verified">✔</span>
+                        </div>
+                        <p class="specialty">
+                            {% if student.is_incognito %}
+                                Специальность скрыта
+                            {% elif student.specialty %}
+                                {{ student.specialty }}
+                            {% else %}
+                                Специальность не указана
+                            {% endif %}
+                        </p>
+                        <div class="student-card__skills">
+                            {% for skill in student.skills.all|slice:":3" %}
+                                <span class="tech">{{ skill.name }}</span>
+                            {% empty %}
+                                <span class="tech">Без навыков</span>
+                            {% endfor %}
+                        </div>
                     </div>
-                    <p class="specialty">
-                        {% if student.is_incognito %}
-                            Группа скрыта
-                        {% else %}
-                            {{ student.course }}
-                        {% endif %}
-                    </p>
-                    <div class="tech-tags">
-                        {% for skill in student.skills.all|slice:":3" %}
-                            <span class="tech">{{ skill.name }}</span>
-                        {% empty %}
-                            <span class="tech">Без навыков</span>
-                        {% endfor %}
+                    <div class="student-card__footer">
+                        <p class="student-card__meta">Достижений: {{ student.achievements.all|length }}</p>
+                        <span class="status status-online">{{ student.get_job_search_status_display }}</span>
                     </div>
-                    <p style="margin:8px 0 0; color:#6b7280; font-size:13px;">
-                        Достижений: {{ student.achievements.all|length }}
-                    </p>
-                    <span class="status status-online">{{ student.get_job_search_status_display }}</span>
                 </div>
             </a>
             {% empty %}
@@ -135,8 +150,42 @@
 
 <footer class="site-footer">
     <div class="container">
-        <p>© 2026 Академия-ТОП. Все права защищены.</p>
+        <p>© 2026 Центр профориентации «Траектория». Все права защищены.</p>
         <a href="#">Политика обработки данных</a>
     </div>
 </footer>
+</div>
+
+{% if featured_vacancies %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const viewport = document.getElementById('vacancies-scroll');
+    const prevBtn = document.getElementById('vacancies-prev');
+    const nextBtn = document.getElementById('vacancies-next');
+    if (!viewport || !prevBtn || !nextBtn) {
+        return;
+    }
+
+    const scrollStep = 316;
+
+    function updateButtons() {
+        const maxScroll = viewport.scrollWidth - viewport.clientWidth;
+        const atStart = viewport.scrollLeft <= 4;
+        const atEnd = viewport.scrollLeft >= maxScroll - 4;
+        prevBtn.disabled = atStart;
+        nextBtn.disabled = atEnd || maxScroll <= 0;
+    }
+
+    prevBtn.addEventListener('click', function () {
+        viewport.scrollBy({ left: -scrollStep, behavior: 'smooth' });
+    });
+    nextBtn.addEventListener('click', function () {
+        viewport.scrollBy({ left: scrollStep, behavior: 'smooth' });
+    });
+    viewport.addEventListener('scroll', updateButtons, { passive: true });
+    window.addEventListener('resize', updateButtons);
+    updateButtons();
+});
+</script>
+{% endif %}
 {% endblock %}

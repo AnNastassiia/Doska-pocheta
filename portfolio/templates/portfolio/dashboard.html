@@ -13,6 +13,12 @@
                 <p>После одобрения менеджером вы получите доступ к запросам контактов студентов.</p>
             {% elif student %}
                 <p>Статус профиля: <strong>{{ profile_status }}</strong></p>
+                <div class="dashboard-top-actions reveal" style="--reveal-delay: 1;">
+                    <a href="{% url 'vacancies_list' %}" class="dashboard-top-actions__btn">Смотреть вакансии</a>
+                    <a href="{% url 'student_applications' %}" class="dashboard-top-actions__btn">Мои отклики</a>
+                    <a href="{% url 'student_contact_requests' %}" class="dashboard-top-actions__btn">Запросы контакта</a>
+                    <a href="{% url 'student_inquiries' %}" class="dashboard-top-actions__btn">Приглашения работодателей</a>
+                </div>
             {% endif %}
 
             {% if employer %}
@@ -20,7 +26,7 @@
                     <h2>Информация работодателя</h2>
                     <ul>
                         <li>Компания: {{ employer.company_name }}</li>
-                        <li>Сфера: {{ employer.get_sector_display }}</li>
+                        <li>Сфера: {{ employer.sector|default:"Не указана" }}</li>
                         <li>Контактное лицо: {{ employer.contact_person }}</li>
                         <li>Цель: {{ employer.registration_purpose }}</li>
                     </ul>
@@ -35,114 +41,201 @@
             {% endif %}
 
             {% if student %}
-            <section class="profile-section">
-                <h2>Данные профиля</h2>
-                <p style="color:#6b7280;">Все поля профиля (фото, о себе, навыки и приватность) редактируются на этой странице одним сохранением.</p>
-                {% if save_message %}
-                    <p style="color:#166534;"><strong>{{ save_message }}</strong></p>
-                {% endif %}
-                {% if student.rejection_reason and not student.is_submitted_for_review %}
-                    <p style="color:#b91c1c;"><strong>Причина последнего отказа:</strong> {{ student.rejection_reason }}</p>
-                {% endif %}
+            <section class="profile-section reveal">
+                <div class="auth-form auth-form--wide student-profile-form reveal" style="--reveal-delay: 1;">
+                    <div class="auth-form__header">
+                        <h2>Мой профиль</h2>
+                        <p class="auth-form__subtitle">Редактируйте фото, контактные данные и навыки в одном удобном виде.</p>
+                    </div>
 
-                <div style="background:#f8fafc; border:1px solid #e5e7eb; border-radius:8px; padding:12px; margin-bottom:12px;">
-                    <strong>Manager-owned поля</strong>
-                    <p style="margin:8px 0 0; color:#6b7280;">Эти данные видны студенту, но редактируются только менеджером.</p>
-                    <p style="margin:8px 0 0;"><strong>ФИО:</strong> {{ student.full_name }}</p>
-                    <p style="margin:4px 0 0;"><strong>Группа / специальность:</strong> {{ student.course }}</p>
-                    <p style="margin:4px 0 0;"><strong>Дата рождения:</strong> {{ student.birth_date|default:"Не указана" }}</p>
-                    <p style="margin:4px 0 0;"><strong>Логин / почта аккаунта:</strong> {{ student.user.email }}</p>
-                </div>
-
-                <form method="post" enctype="multipart/form-data" id="dashboard-student-form">
-                    {% csrf_token %}
-                    {% if dashboard_form.non_field_errors %}
-                        <div class="field-error">{{ dashboard_form.non_field_errors }}</div>
+                    {% if save_message %}
+                        <div class="form-errors" style="background-color:#ecfdf5; border-color:#bbf7d0; color:#166534;">
+                            <p style="margin:0;"><strong>{{ save_message }}</strong></p>
+                        </div>
+                    {% endif %}
+                    {% if student.rejection_reason and not student.is_submitted_for_review %}
+                        <div class="form-errors" style="background-color:#fee2e2; border-color:#fca5a5; color:#991b1b;">
+                            <p style="margin:0;"><strong>Причина последнего отказа:</strong> {{ student.rejection_reason }}</p>
+                        </div>
                     {% endif %}
 
-                    <h3 style="margin-top:0;">Фото</h3>
-                    <div class="photo-editor">
-                        {% if student.photo %}
-                            <img src="{{ student.photo.url }}" alt="{{ student.full_name }}" class="photo-preview" id="photo-preview" data-original-src="{{ student.photo.url }}">
-                        {% else %}
-                            <img src="{% static 'default-avatar.svg' %}" alt="Фото по умолчанию" class="photo-preview" id="photo-preview" data-original-src="{% static 'default-avatar.svg' %}">
-                        {% endif %}
+                    <div class="manager-owned-readonly">
+                        <div class="manager-owned-title">Основные данные</div>
+                        <dl class="manager-owned-grid">
+                            <dt>ФИО</dt>
+                            <dd>{{ student.full_name|default:"—" }}</dd>
+                            <dt>Дата рождения</dt>
+                            <dd>{% if student.birth_date %}{{ student.birth_date|date:"d.m.Y" }}{% else %}—{% endif %}</dd>
+                            <dt>Специальность</dt>
+                            <dd>{% if student.specialty %}{{ student.specialty }}{% else %}—{% endif %}</dd>
+                            <dt>Логин (e-mail)</dt>
+                            <dd>{{ student.user.email|default:"—" }}</dd>
+                        </dl>
                     </div>
-                    <p>
-                        {{ dashboard_form.photo.label_tag }}<br>
-                        {{ dashboard_form.photo }}
-                        <small style="display:block; color:#6b7280; margin-top:4px;">Превью обновится сразу после выбора файла. Форматы: JPG, PNG, WEBP, GIF. До 5 МБ.</small>
-                        <span class="field-error" id="photo-client-error" style="display:none;"></span>
-                        {% if dashboard_form.photo.errors %}<span class="field-error">{{ dashboard_form.photo.errors }}</span>{% endif %}
-                    </p>
 
-                    <h3>О себе и контакты</h3>
-                    <p>
-                        {{ dashboard_form.about_me.label_tag }}<br>
-                        {{ dashboard_form.about_me }}
-                        <small style="display:block; color:#6b7280; margin-top:4px;">{{ dashboard_form.about_me.help_text }}</small>
-                        <small id="about-me-counter" style="display:block; color:#6b7280;">0 / 1000</small>
-                        {% if dashboard_form.about_me.errors %}<span class="field-error">{{ dashboard_form.about_me.errors }}</span>{% endif %}
-                    </p>
-                    <p>{{ dashboard_form.contact_email.label_tag }}<br>{{ dashboard_form.contact_email }}{% if dashboard_form.contact_email.errors %}<span class="field-error">{{ dashboard_form.contact_email.errors }}</span>{% endif %}</p>
-                    <p>{{ dashboard_form.phone.label_tag }}<br>{{ dashboard_form.phone }}{% if dashboard_form.phone.errors %}<span class="field-error">{{ dashboard_form.phone.errors }}</span>{% endif %}</p>
-                    <p>{{ dashboard_form.telegram.label_tag }}<br>{{ dashboard_form.telegram }}{% if dashboard_form.telegram.errors %}<span class="field-error">{{ dashboard_form.telegram.errors }}</span>{% endif %}</p>
-                    <p>{{ dashboard_form.whatsapp.label_tag }}<br>{{ dashboard_form.whatsapp }}{% if dashboard_form.whatsapp.errors %}<span class="field-error">{{ dashboard_form.whatsapp.errors }}</span>{% endif %}</p>
-                    <p>{{ dashboard_form.preferred_contact_note.label_tag }}<br>{{ dashboard_form.preferred_contact_note }}{% if dashboard_form.preferred_contact_note.errors %}<span class="field-error">{{ dashboard_form.preferred_contact_note.errors }}</span>{% endif %}</p>
-                    <p>{{ dashboard_form.social_link.label_tag }}<br>{{ dashboard_form.social_link }}{% if dashboard_form.social_link.errors %}<span class="field-error">{{ dashboard_form.social_link.errors }}</span>{% endif %}</p>
+                    <form method="post" enctype="multipart/form-data" id="dashboard-student-form">
+                        {% csrf_token %}
+                        {% if dashboard_form.non_field_errors %}
+                            <div class="form-errors">{{ dashboard_form.non_field_errors }}</div>
+                        {% endif %}
 
-                    <h3>Навыки</h3>
-                    <p>
-                        {{ dashboard_form.skills.label_tag }}<br>
-                        {{ dashboard_form.skills }}
-                        {% if dashboard_form.skills.errors %}<span class="field-error">{{ dashboard_form.skills.errors }}</span>{% endif %}
-                    </p>
-                    <p>
-                        {{ dashboard_form.custom_skills.label_tag }}<br>
-                        {{ dashboard_form.custom_skills }}
-                        <small style="display:block; color:#6b7280; margin-top:4px;">{{ dashboard_form.custom_skills.help_text }}</small>
-                        {% if dashboard_form.custom_skills.errors %}<span class="field-error">{{ dashboard_form.custom_skills.errors }}</span>{% endif %}
-                    </p>
+                        <div class="form-field photo-field">
+                            <label>Фото</label>
+                            <div class="photo-card">
+                                {% if student.photo %}
+                                    <img src="{{ student.photo.url }}" alt="{{ student.full_name }}" class="photo-preview" id="photo-preview" data-original-src="{{ student.photo.url }}">
+                                {% else %}
+                                    <img src="{% static 'default-avatar.svg' %}" alt="Фото по умолчанию" class="photo-preview" id="photo-preview" data-original-src="{% static 'default-avatar.svg' %}">
+                                {% endif %}
+                                <div class="photo-actions">
+                                    <button type="button" class="icon-button" id="upload-photo-button" title="Редактировать фото">✎</button>
+                                    <button type="button" class="icon-button danger" id="delete-photo-button" title="Удалить фото"{% if not student.photo %} style="display:none;"{% endif %}>🗑</button>
+                                </div>
+                            </div>
+                            <div class="photo-input-hidden">
+                                {{ dashboard_form.photo }}
+                                {{ dashboard_form.delete_photo }}
+                                <span class="field-error" id="photo-client-error" style="display:none;"></span>
+                                {% if dashboard_form.photo.errors %}<span class="field-error">{{ dashboard_form.photo.errors }}</span>{% endif %}
+                            </div>
+                        </div>
 
-                    <h3>Приватность</h3>
-                    <label class="checkbox-label">{{ dashboard_form.hide_contacts }} Скрыть контактные данные</label>
-                    <label class="checkbox-label">{{ dashboard_form.is_private }} Сделать профиль приватным</label>
-                    <label class="checkbox-label">{{ dashboard_form.is_incognito }} Режим «Инкогнито»</label>
-                    <p style="color:#6b7280; margin-top:8px;">
-                        Текущий статус:
-                        <strong>
-                            {% if student.is_private %}
-                                Профиль скрыт полностью
-                            {% elif student.is_incognito %}
-                                Инкогнито (личность скрыта)
-                            {% else %}
-                                Профиль открыт (контакты работодателям не показываются — только запрос)
+                        <div class="form-field">
+                            {{ dashboard_form.about_me.label_tag }}
+                            {{ dashboard_form.about_me }}
+                            <small>{{ dashboard_form.about_me.help_text }}</small>
+                            <small id="about-me-counter">0 / 1000</small>
+                            {% if dashboard_form.about_me.errors %}<span class="field-error">{{ dashboard_form.about_me.errors }}</span>{% endif %}
+                        </div>
+
+                        <div class="form-field">
+                            {{ dashboard_form.contact_email.label_tag }}
+                            {{ dashboard_form.contact_email }}
+                            {% if dashboard_form.contact_email.errors %}<span class="field-error">{{ dashboard_form.contact_email.errors }}</span>{% endif %}
+                        </div>
+                        <div class="form-field">
+                            {{ dashboard_form.phone.label_tag }}
+                            {{ dashboard_form.phone }}
+                            {% if dashboard_form.phone.errors %}<span class="field-error">{{ dashboard_form.phone.errors }}</span>{% endif %}
+                        </div>
+                        <div class="form-field">
+                            {{ dashboard_form.telegram.label_tag }}
+                            {{ dashboard_form.telegram }}
+                            {% if dashboard_form.telegram.errors %}<span class="field-error">{{ dashboard_form.telegram.errors }}</span>{% endif %}
+                        </div>
+                        <div class="form-field">
+                            {{ dashboard_form.whatsapp.label_tag }}
+                            {{ dashboard_form.whatsapp }}
+                            {% if dashboard_form.whatsapp.errors %}<span class="field-error">{{ dashboard_form.whatsapp.errors }}</span>{% endif %}
+                        </div>
+                        <div class="form-field">
+                            {{ dashboard_form.preferred_contact_note.label_tag }}
+                            {{ dashboard_form.preferred_contact_note }}
+                            {% if dashboard_form.preferred_contact_note.errors %}<span class="field-error">{{ dashboard_form.preferred_contact_note.errors }}</span>{% endif %}
+                        </div>
+                        <div class="form-field">
+                            {{ dashboard_form.social_link.label_tag }}
+                            {{ dashboard_form.social_link }}
+                            {% if dashboard_form.social_link.errors %}<span class="field-error">{{ dashboard_form.social_link.errors }}</span>{% endif %}
+                        </div>
+
+                        {% if student_is_minor %}
+                        <div class="consent-section" style="margin-top:8px; padding:16px; background:#fffbeb; border:1px solid #fcd34d; border-radius:8px;">
+                            <h3 style="margin:0 0 12px 0; font-size:16px; color:#92400e;">Контакты законного представителя</h3>
+                            <p style="margin:0 0 12px 0; font-size:13px; color:#78350f;">Участнику меньше 18 лет — укажите контакты родителя или законного представителя.</p>
+                            <div class="form-field">
+                                {{ dashboard_form.parent_phone.label_tag }}
+                                {{ dashboard_form.parent_phone }}
+                                {% if dashboard_form.parent_phone.errors %}<span class="field-error">{{ dashboard_form.parent_phone.errors }}</span>{% endif %}
+                            </div>
+                            <div class="form-field">
+                                {{ dashboard_form.parent_email.label_tag }}
+                                {{ dashboard_form.parent_email }}
+                                {% if dashboard_form.parent_email.errors %}<span class="field-error">{{ dashboard_form.parent_email.errors }}</span>{% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <div class="consent-section" style="margin-top:16px; padding:16px; background:#f0f9ff; border:1px solid #bae6fd; border-radius:8px;">
+                            <h3 style="margin:0 0 8px 0; font-size:16px; color:#0c4a6e;">Согласие на обработку персональных данных</h3>
+                            <p style="margin:0 0 12px 0; font-size:13px; color:#0369a1;">
+                                Скачайте бланк, распечатайте, заполните, подпишите и прикрепите скан или PDF.
+                            </p>
+                            <p style="margin:0 0 12px 0;">
+                                <a href="{% static 'consents/soglasie_obrabotka_dannyh.txt' %}" download class="btn-outline" style="display:inline-block; padding:8px 14px; text-decoration:none;">
+                                    Скачать бланк согласия
+                                </a>
+                            </p>
+                            {% if student.has_data_processing_consent_file %}
+                                <p style="margin:0 0 10px 0; font-size:14px;">
+                                    <strong>Загружено:</strong>
+                                    <a href="{{ student.data_processing_consent_file.url }}" target="_blank" rel="noopener">открыть файл</a>
+                                </p>
+                                <label style="font-size:13px; display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+                                    {{ dashboard_form.clear_data_processing_consent_file }}
+                                    Удалить текущий файл и загрузить новый
+                                </label>
                             {% endif %}
-                        </strong>
-                    </p>
+                            <div class="form-field">
+                                <label class="sr-only" for="{{ dashboard_form.data_processing_consent_file.id_for_label }}">Прикрепить подписанный файл</label>
+                                {{ dashboard_form.data_processing_consent_file }}
+                                {% if dashboard_form.data_processing_consent_file.errors %}<span class="field-error">{{ dashboard_form.data_processing_consent_file.errors }}</span>{% endif %}
+                            </div>
+                        </div>
 
-                    <h3>Статус поиска работы</h3>
-                    <p>
-                        {{ dashboard_form.job_search_status.label_tag }}<br>
-                        {{ dashboard_form.job_search_status }}
-                        {% if dashboard_form.job_search_status.errors %}<span class="field-error">{{ dashboard_form.job_search_status.errors }}</span>{% endif %}
-                    </p>
+                        {% if student_is_minor %}
+                        <div class="consent-section" style="margin-top:16px; padding:16px; background:#fef2f2; border:1px solid #fecaca; border-radius:8px;">
+                            <h3 style="margin:0 0 8px 0; font-size:16px; color:#991b1b;">Согласие законного представителя</h3>
+                            <p style="margin:0 0 12px 0; font-size:13px; color:#b91c1c;">
+                                Для несовершеннолетних дополнительно нужно согласие родителя или законного представителя.
+                            </p>
+                            <p style="margin:0 0 12px 0;">
+                                <a href="{% static 'consents/soglasie_zakonnyi_predstavitel.txt' %}" download class="btn-outline" style="display:inline-block; padding:8px 14px; text-decoration:none;">
+                                    Скачать бланк согласия родителя
+                                </a>
+                            </p>
+                            {% if student.has_parent_consent_file %}
+                                <p style="margin:0 0 10px 0; font-size:14px;">
+                                    <strong>Загружено:</strong>
+                                    <a href="{{ student.parent_consent_file.url }}" target="_blank" rel="noopener">открыть файл</a>
+                                </p>
+                                <label style="font-size:13px; display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+                                    {{ dashboard_form.clear_parent_consent_file }}
+                                    Удалить текущий файл и загрузить новый
+                                </label>
+                            {% endif %}
+                            <div class="form-field">
+                                <label class="sr-only" for="{{ dashboard_form.parent_consent_file.id_for_label }}">Прикрепить согласие родителя</label>
+                                {{ dashboard_form.parent_consent_file }}
+                                {% if dashboard_form.parent_consent_file.errors %}<span class="field-error">{{ dashboard_form.parent_consent_file.errors }}</span>{% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
 
-                    <button type="submit" class="btn-primary">Сохранить изменения профиля</button>
-                </form>
+                        <div class="form-field">
+                            {{ dashboard_form.skills.label_tag }}
+                            {{ dashboard_form.skills }}
+                            <small>{{ dashboard_form.skills.help_text }}</small>
+                            {% if dashboard_form.skills.errors %}<span class="field-error">{{ dashboard_form.skills.errors }}</span>{% endif %}
+                        </div>
+
+
+
+                        <div class="form-field">
+                            {{ dashboard_form.job_search_status.label_tag }}
+                            {{ dashboard_form.job_search_status }}
+                            {% if dashboard_form.job_search_status.errors %}<span class="field-error">{{ dashboard_form.job_search_status.errors }}</span>{% endif %}
+                        </div>
+
+                    </form>
+                </div>
             </section>
 
             <!-- Управление портфолио -->
-            <section class="profile-section">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <section class="profile-section reveal" style="--reveal-delay: 2;">
+                <div class="portfolio-header">
                     <h2>Мое портфолио</h2>
-                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                        <a href="/add-project/" class="btn-add-project">+ Добавить проект</a>
-                        <a href="{% url 'vacancies_list' %}" class="btn-add-project" style="background:#0a2540; color:#fff;">Смотреть вакансии</a>
-                        <a href="{% url 'student_applications' %}" class="btn-add-project" style="background:#166534; color:#fff;">Мои отклики</a>
-                        <a href="{% url 'student_contact_requests' %}" class="btn-add-project" style="background:#92400e; color:#fff;">Запросы контакта</a>
-                        <a href="{% url 'student_inquiries' %}" class="btn-add-project" style="background:#0f766e; color:#fff;">Приглашения работодателей</a>
-                    </div>
+                    <a href="/add-project/" class="btn-add-project">+ Добавить проект</a>
                 </div>
 
                 {% if student.achievements.all %}
@@ -168,9 +261,11 @@
                                     <small>Ссылка: <a href="{{ project.link }}" target="_blank" rel="noopener">{{ project.link|truncatechars:45 }}</a></small>
                                 </div>
                                 <div class="project-actions">
-                                    {% if not project.is_approved %}
-                                        <a href="{% url 'edit_project' project.id %}" class="action-btn">Редактировать</a>
-                                    {% endif %}
+                                    <a href="{% url 'edit_project' project.id %}" class="action-btn">Редактировать</a>
+                                    <form method="post" action="{% url 'delete_project' project.id %}" class="project-actions__form">
+                                        {% csrf_token %}
+                                        <button type="submit" class="action-btn action-btn--danger" onclick="return confirm('Удалить достижение?')">Удалить</button>
+                                    </form>
                                     {% if project.admin_comment %}
                                         <button class="action-btn warning" data-comment="{{ project.admin_comment }}">📝 Комментарий</button>
                                     {% endif %}
@@ -181,6 +276,10 @@
                 {% else %}
                     <p style="text-align: center; color: #999;">Вы еще не добавили проекты. <a href="/add-project/">Добавить первый проект</a></p>
                 {% endif %}
+
+                <div style="margin-top: 20px;">
+                    <button type="submit" form="dashboard-student-form" class="btn-primary">Сохранить изменения</button>
+                </div>
             </section>
 
             {% endif %}
@@ -193,9 +292,22 @@
     display: grid;
     grid-template-columns: 1fr;
     gap: 20px;
-    padding: 20px;
-    background: #f8fafc;
+    padding: 24px 20px 48px;
     min-height: calc(100vh - 60px);
+    box-sizing: border-box;
+    overflow-x: hidden;
+}
+.dashboard-main {
+    max-width: 1200px;
+    margin: 0 auto;
+    background: rgba(255, 255, 255, 0.94);
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.92);
+    box-shadow: 0 8px 28px rgba(29, 58, 138, 0.08);
+    padding: 32px 28px;
+    width: 100%;
+    box-sizing: border-box;
+    overflow-x: hidden;
 }
 .dashboard-sidebar {
     display: none;
@@ -212,7 +324,7 @@
     padding: 12px 16px;
     border-radius: 8px;
     text-decoration: none;
-    color: #0a2540;
+    color: var(--tk-blue);
     font-weight: 500;
     transition: background 0.2s;
 }
@@ -228,6 +340,37 @@
     border-radius: 999px;
     font-size: 11px;
     font-weight: 700;
+}
+.manager-owned-readonly {
+    margin-bottom: 20px;
+    padding: 18px 20px;
+    background: linear-gradient(90deg, rgba(248, 250, 252, 0.96), rgba(239, 246, 255, 0.96));
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+}
+.manager-owned-title {
+    margin: 0 0 10px;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--tk-blue);
+}
+.manager-owned-grid {
+    margin: 0;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 8px 18px;
+    align-items: baseline;
+    font-size: 0.98rem;
+}
+.manager-owned-grid dt {
+    margin: 0;
+    font-weight: 600;
+    color: var(--tk-blue);
+}
+.manager-owned-grid dd {
+    margin: 0;
+    font-weight: 500;
+    color: #0f172a;
 }
 .dashboard-main {
     background: #fff;
@@ -300,16 +443,55 @@
     font-size: 16px;
     padding: 0;
 }
+.dashboard-top-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 14px 0 4px;
+}
+.dashboard-top-actions__btn {
+    display: inline-block;
+    padding: 9px 14px;
+    border-radius: 8px;
+    border: 1px solid rgba(29, 58, 138, 0.18);
+    background: var(--tk-blue-soft);
+    color: var(--tk-blue-dark);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 13px;
+    transition: all 0.2s ease;
+}
+.dashboard-top-actions__btn:hover {
+    border-color: rgba(29, 58, 138, 0.35);
+    background: rgba(238, 242, 251, 0.95);
+}
+.portfolio-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+.portfolio-header h2 {
+    margin: 0;
+}
 .btn-add-project {
-    background: #ffb300;
-    color: #0a2540;
-    border: none;
+    background: var(--tk-blue-soft);
+    color: var(--tk-blue);
+    border: 1px solid rgba(29, 58, 138, 0.22);
     padding: 10px 18px;
-    border-radius: 6px;
+    border-radius: 8px;
     font-weight: 700;
     cursor: pointer;
     text-decoration: none;
     display: inline-block;
+    white-space: nowrap;
+    margin-left: auto;
+}
+.btn-add-project:hover {
+    background: rgba(238, 242, 251, 0.95);
+    border-color: rgba(29, 58, 138, 0.35);
 }
 .projects-list {
     display: flex;
@@ -317,13 +499,22 @@
     gap: 16px;
 }
 .project-item {
-    display: grid;
-    grid-template-columns: 120px 1fr 150px;
-    gap: 16px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 12px 16px;
     padding: 16px;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    align-items: center;
+    border: 1px solid var(--tk-border);
+    border-radius: 12px;
+    background: var(--tk-white);
+    box-sizing: border-box;
+}
+.project-status {
+    flex: 0 0 auto;
+}
+.project-details {
+    flex: 1 1 180px;
+    min-width: 0;
 }
 .status-badge {
     display: inline-flex;
@@ -355,24 +546,54 @@
 }
 .project-details small {
     color: #999;
+    word-break: break-all;
 }
 .project-actions {
+    flex: 0 1 auto;
     display: flex;
+    flex-wrap: wrap;
     gap: 8px;
+    justify-content: flex-end;
+    align-items: center;
+    max-width: 100%;
+    margin-left: auto;
+}
+.project-actions__form {
+    display: inline-flex;
+    margin: 0;
 }
 .action-btn {
-    padding: 6px 12px;
-    border: 1px solid #d1d5db;
-    border-radius: 6px;
+    padding: 8px 14px;
+    border: 1px solid var(--tk-border);
+    border-radius: 8px;
     background: #fff;
-    color: #0a2540;
+    color: var(--tk-blue);
     cursor: pointer;
-    font-size: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
     text-decoration: none;
+    white-space: nowrap;
+    box-sizing: border-box;
+}
+.action-btn:hover {
+    background: var(--tk-blue-soft);
+    border-color: var(--tk-blue);
+}
+.action-btn--danger {
+    background: var(--tk-red-soft);
+    border-color: #fca5a5;
+    color: var(--tk-red);
+}
+.action-btn--danger:hover {
+    background: var(--tk-red);
+    border-color: var(--tk-red);
+    color: var(--tk-white);
 }
 .action-btn.warning {
-    border-color: #fca5a5;
-    color: #b91c1c;
+    border-color: #fcd34d;
+    color: #92400e;
+    background: #fffbeb;
 }
 .checkbox-label {
     display: flex;
@@ -385,7 +606,7 @@
     cursor: pointer;
 }
 .btn-primary {
-    background: #0a2540;
+    background: var(--tk-blue);
     color: #fff;
     border: none;
     padding: 10px 20px;
@@ -411,10 +632,69 @@ hr {
         position: static;
     }
     .project-item {
-        grid-template-columns: 1fr;
+        flex-direction: column;
+    }
+    .project-actions {
+        width: 100%;
+        margin-left: 0;
+        justify-content: flex-start;
+    }
+    .portfolio-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .btn-add-project {
+        margin-left: 0;
     }
 }
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('dashboard-student-form');
+    const photoInput = form.querySelector('input[type="file"][name$="photo"]');
+    const deletePhotoInput = form.querySelector('input[type="hidden"][name$="delete_photo"]');
+    const uploadButton = document.getElementById('upload-photo-button');
+    const deleteButton = document.getElementById('delete-photo-button');
+    const photoPreview = document.getElementById('photo-preview');
+    const defaultPhotoSrc = '{% static "default-avatar.svg" %}';
+
+    if (!photoInput) {
+        return;
+    }
+
+    uploadButton.addEventListener('click', function () {
+        photoInput.click();
+    });
+
+    photoInput.addEventListener('change', function () {
+        if (photoInput.files && photoInput.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function (event) {
+                photoPreview.src = event.target.result;
+            };
+            reader.readAsDataURL(photoInput.files[0]);
+            if (deletePhotoInput) {
+                deletePhotoInput.value = 'False';
+            }
+            deleteButton.style.display = 'inline-flex';
+        } else {
+            if (deletePhotoInput) {
+                deletePhotoInput.value = 'False';
+            }
+        }
+    });
+
+    deleteButton.addEventListener('click', function () {
+        if (deletePhotoInput) {
+            deletePhotoInput.value = 'True';
+        }
+        photoInput.value = '';
+        photoPreview.src = defaultPhotoSrc;
+        deleteButton.style.display = 'none';
+    });
+});
+</script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const fileInput = document.getElementById('id_photo');

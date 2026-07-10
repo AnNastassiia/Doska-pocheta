@@ -11,7 +11,7 @@
                     <h2 style="margin-bottom:8px;">{{ employer.company_name }}</h2>
                     <p><strong>Контактное лицо:</strong> {{ employer.contact_person }}</p>
                     <p><strong>Email:</strong> {{ employer.user.email }}</p>
-                    <p><strong>Сфера:</strong> {{ employer.get_sector_display }}</p>
+                    <p><strong>Сфера:</strong> {{ employer.sector|default:"Не указана" }}</p>
                     <p><strong>Сайт:</strong> {{ employer.website|default:"Не указан" }}</p>
                     <p><strong>Цель регистрации:</strong> {{ employer.registration_purpose|default:"Не указана" }}</p>
 

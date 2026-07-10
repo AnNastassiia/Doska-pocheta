@@ -1,0 +1,17 @@
+[Unit]
+Description=Gunicorn for Traektoriya Django site
+After=network.target
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/Doska-pocheta
+EnvironmentFile=/var/www/Doska-pocheta/.env
+ExecStart=/var/www/Doska-pocheta/venv/bin/gunicorn \
+    --workers 3 \
+    --bind unix:/var/www/Doska-pocheta/gunicorn.sock \
+    student_portfolio.wsgi:application
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
